@@ -114,7 +114,9 @@ jobs:
           PHP_CLI_SERVER_WORKERS=4 nohup php -S 127.0.0.1:8899 -t /tmp/wp > /tmp/server.log 2>&1 &
           for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:8899/ && break; sleep 1; done
       - name: Plugin unit + integration tests
-        run: IAA_TEST_URL='http://127.0.0.1:8899/index.php?rest_route=/rar-iaa/v1' WP_LOAD=/tmp/wp/wp-load.php php tests/php/run-all.php
+        run: |
+          set -o pipefail
+          IAA_TEST_URL='http://127.0.0.1:8899/index.php?rest_route=/rar-iaa/v1' WP_LOAD=/tmp/wp/wp-load.php php tests/php/run-all.php 2>&1 | tee /tmp/php-tests.log
       - uses: actions/setup-node@v4
         if: matrix.e2e
         with:
@@ -123,13 +125,19 @@ jobs:
         if: matrix.e2e
         run: |
           npm ci
-          IAA_E2E_ORIGIN=http://127.0.0.1:8899 IAA_E2E_DOCROOT=/tmp/wp WP_LOAD=/tmp/wp/wp-load.php node tests/e2e/run.mjs
+          set -o pipefail
+          IAA_E2E_ORIGIN=http://127.0.0.1:8899 IAA_E2E_DOCROOT=/tmp/wp WP_LOAD=/tmp/wp/wp-load.php node tests/e2e/run.mjs 2>&1 | tee /tmp/e2e.log
       - name: No PHP warnings from the plugin
         run: |
           if grep -E "PHP (Fatal|Warning|Notice|Deprecated).*rar-inbox-ai-assist" /tmp/wp/debug.log; then exit 1; fi
-      - name: Server log on failure
+      - name: Logs as annotations on failure
         if: failure()
-        run: tail -100 /tmp/server.log; tail -100 /tmp/wp/debug.log || true
+        run: |
+          note() { [ -f "$2" ] && echo "::error title=$1::$(tail -40 "$2" | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')" || true; }
+          note "PHP tests (tail)" /tmp/php-tests.log
+          note "E2E (tail)" /tmp/e2e.log
+          note "PHP server log (tail)" /tmp/server.log
+          note "WP debug.log (tail)" /tmp/wp/debug.log
 
   package:
     name: Build release ZIPs

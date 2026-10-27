@@ -21,5 +21,9 @@ foreach ( $files as $f ) {
 echo "\nTOTAL: {$GLOBALS['T']['pass']} passed, {$GLOBALS['T']['fail']} failed\n";
 foreach ( $GLOBALS['T']['failures'] as $f ) {
 	echo " - {$f}\n";
+	if ( getenv( 'GITHUB_ACTIONS' ) ) {
+		// Surface failures as annotations (visible without downloading logs).
+		echo '::error title=PHP test failure::' . str_replace( array( "\r", "\n", '%' ), array( ' ', ' ', '%25' ), $f ) . "\n";
+	}
 }
 exit( $GLOBALS['T']['fail'] ? 1 : 0 );
