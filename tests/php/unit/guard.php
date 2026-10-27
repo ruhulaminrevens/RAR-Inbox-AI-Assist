@@ -4,7 +4,7 @@ use RarIaa\Draft\FactGuard;
 
 RarIaa\Settings::flush();
 $facts = array(
-	'business_name' => 'Nabiad',
+	'business_name' => 'Demo Traders',
 	'today'         => '2026-10-27 (Tuesday)',
 	'audience'      => 'dealer',
 	'kb'            => array( array( 'id' => 'kb:1', 'title' => 'Hours', 'category' => 'hours', 'answer_bn' => 'সকাল ৯টা থেকে সন্ধ্যা ৬টা। ডেলিভারি ২-৩ দিনে। যোগাযোগ 01700-000001', 'answer_en' => null ) ),
@@ -105,3 +105,13 @@ t_ok( in_array( 'UNVERIFIED_NUMBER', array_column( $r['warnings'], 'code' ), tru
 t_eq( 'blocked', FactGuard::check( 'দাম 900 টাকা, 100ml।', $perfume, array() )['result'], 'price before a size is still checked' );
 t_eq( array(), FactGuard::check( 'দাম ৳1,125, ১২টি।', $perfume, array() )['blocked_values'], 'Bangla count "১২টি" next to a price cue is a quantity' );
 t_eq( array( '৪৫' ), FactGuard::check( 'দাম ৳1,125, টিকা ৪৫ টাকা।', $perfume, array() )['blocked_values'], '"টি" inside a word is not a unit' );
+
+// 1.0.0: a public website price needs no unit next to it (retail price per item), and still must match.
+$pub                    = $facts;
+$pub['audience']        = 'unverified';
+$pub['products']        = array( array( 'id' => 'price:9', 'product' => 'Jaguar Classic Red Eau de Toilette for Men – 100ml', 'unit' => 'pcs', 'pack_size' => null ) );
+$pub['public_prices']   = array( array( 'id' => 'mrp:9', 'product' => 'Jaguar Classic Red Eau de Toilette for Men – 100ml', 'unit' => 'pcs', 'label' => 'website price', 'mrp_bdt' => 2250.0, 'mrp_display' => '৳2,250' ) );
+$r                      = FactGuard::check( 'Jaguar Classic Red (100ml) আমাদের কাছে আছে, ওয়েবসাইটের দাম ৳২,২৫০।', $pub, array() );
+t_eq( 'pass', $r['result'], 'website price without a unit: pass (no PRICE_UNIT_UNCLEAR)' );
+t_eq( 'blocked', FactGuard::check( 'ওয়েবসাইটের দাম ৳২,১০০।', $pub, array() )['result'], 'a different public price is still blocked' );
+t_eq( 'warned', FactGuard::check( 'দাম ৳১,২৫০।', $facts, array() )['result'], 'dealer price without unit still warned' );

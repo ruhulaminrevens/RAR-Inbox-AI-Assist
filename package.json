@@ -1,6 +1,6 @@
 {
   "name": "rar-inbox-ai-assist",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "private": true,
   "description": "Dev/test tooling only. Nothing here runs on the server.",
   "type": "module",

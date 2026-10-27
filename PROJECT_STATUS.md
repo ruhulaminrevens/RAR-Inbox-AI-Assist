@@ -1,22 +1,17 @@
-# Project status — 2026-10-27
+# Project status — 2026-10-28
 
-**Current stage: v0.2.0 built and tested — pre-pilot, not yet approved for production.** 0.1.0 was installed on nabiad.com by the owner; 0.2.0 adds WooCommerce linking, free/paid AI providers with fallback and a professional UI.
+**Current stage: 1.0.0 release candidate.** Engineering is complete and verified. Production approval follows the owner checklist in [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md). The product works for any business in Bangladesh with a WordPress site (OD-18). 0.1.0 – 0.2.1 were used on nabiad.com by the owner, and their feedback shaped 0.2.1 and 1.0.0.
 
 | Item | Status |
 |---|---|
-| Architecture v0.2 (six documents + audit) | Published |
-| WordPress plugin `rar-inbox-ai-assist` 0.2.0 | **Built.** 592/592 PHP checks on MariaDB 10.11 + WooCommerce 11.1.2; 532/532 on SQLite; 594/594 on a fresh ZIP install; upgrade from 0.1.0 with data verified |
-| WooCommerce product & price link | **Built** — sync, tier rules, live stock, product fields |
-| AI providers | Anthropic, OpenAI, Google Gemini, OpenAI-compatible (Groq/OpenRouter); primary + fallback; free tier with consent. **No live call made yet** (needs owner keys) |
-| Chrome extension 0.2.0 (side panel) | **Built.** 23/23 unit tests; 21/21 end-to-end on three sites |
-| Accessibility (axe-core, WCAG 2.1 A/AA) | 0 serious/critical on 6 panel views and 12 admin views; manual keyboard pass pending |
-| PHP 7.4–8.4 compatibility | PHPCompatibility clean; GitHub CI green on PHP 7.4, 8.3, 8.4 (MariaDB 10.11, WooCommerce 11.1.2) incl. E2E |
-| Release ZIPs | `python3 scripts/package.py` → plugin ZIP, extension ZIP, `SHA256SUMS`; release workflow attaches them when a GitHub release is published |
-| Live Meta inbox capture/insert | **Not verified** (needs Meta permission evidence T0.09 and spikes T0.02/T0.03). Off by default; select/paste + Copy works |
-| Real AI provider call | **Not made** — needs the owner's API key(s) (T0.07) |
-| Hostinger campaign-load benchmark | **Not run** (T0.08). Keep 1 simultaneous AI call |
-| Independent security review | **Not done** (T4.05) |
-| Owner decisions OD-1…OD-14 | Safe defaults implemented; sign-off pending (G1) |
-| Pilot and production deployment | **Not done** — needs backup (T5.02) and G2 |
+| WordPress plugin 1.0.0 | **Built and tested** — counts in [06_Plan.md](docs/06_Plan.md) Phase 8; upgrade 0.2.x → 1.0.0 with data verified |
+| Chrome extension 1.0.0 | **Built and tested** — connects to any site (host access granted on connect) |
+| WooCommerce link | Website price for customers, dealer tiers, live stock, auto-sync with rollback |
+| AI providers | Gemini / Groq (free), Anthropic / OpenAI (paid), fallback with 12 s cut-over. **Live calls verified by the owner** (Groq, Gemini; 27 Oct 2026) |
+| Real inbox drafting | Owner used it on the real Meta inbox (selection, staff note, website price) — see readiness §B |
+| Live inbox insert on the real inbox | Not yet evidenced (G0) — optional; select/paste + Copy is always available |
+| Accessibility | axe-core WCAG 2.1 A/AA: 0 serious/critical on panel and admin views |
+| Security | Self-review recorded in readiness §A; independent review is owner check C7 |
+| Hosting load check, backup, pilot, go/no-go | Owner checks C1, C6, C9, C10 |
 
-See [docs/06_Plan.md](docs/06_Plan.md) for per-task evidence and [docs/INSTALL.md](docs/INSTALL.md) for installation.
+Gate summary: AUTH passed · G0 open (live insert evidence) · G1 decisions use approved defaults where recorded (OD-17, OD-18) · G2/G3 = readiness §C sign-off.

@@ -47,7 +47,7 @@ class Installer {
 				add_option( 'rar_iaa_thread_secret', base64_encode( random_bytes( 32 ) ), '', 'no' );
 			}
 			if ( false === get_option( Settings::OPTION, false ) ) {
-				add_option( Settings::OPTION, Settings::defaults(), '', 'no' );
+				add_option( Settings::OPTION, Settings::initial(), '', 'no' );
 			}
 			$missing = self::missing_tables();
 			if ( $missing ) {

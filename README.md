@@ -4,175 +4,115 @@
 
 ### Smarter replies. Verified business facts. Human control.
 
-**AI-powered reply suggestions for Meta Business Suite Messenger — built for Nabiad Distribution Limited**
+**Fact-checked AI reply suggestions for Meta Business Suite inbox — for any business in Bangladesh with a WordPress site**
 
-[![Version](https://img.shields.io/badge/version-v0.2.0-2563eb?style=flat-square)](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist)
-[![Development stage](https://img.shields.io/badge/status-pre--pilot-f59e0b?style=flat-square)](PROJECT_STATUS.md)
+[![Version](https://img.shields.io/badge/version-v1.0.0-2563eb?style=flat-square)](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist)
+[![Status](https://img.shields.io/badge/status-release%20candidate-0e7a4e?style=flat-square)](docs/PRODUCTION_READINESS.md)
 [![CI](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/workflows/ci.yml/badge.svg)](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/workflows/ci.yml)
 [![Chrome](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?style=flat-square)](extension/)
 [![WordPress](https://img.shields.io/badge/WordPress-Plugin-21759B?style=flat-square)](plugin/rar-inbox-ai-assist/)
 
-[**Download Builds**](#-download--installation) · [**Installation Guide**](docs/INSTALL.md) · [**Features**](#-key-features) · [**Tests**](#-verification--testing) · [**Documentation**](docs/README.md)
+[**Download**](#-download--installation) · [**Installation Guide**](docs/INSTALL.md) · [**Production readiness**](docs/PRODUCTION_READINESS.md) · [**Privacy**](docs/PRIVACY.md) · [**Documentation**](docs/README.md)
 
 </div>
 
 > [!IMPORTANT]
-> **v0.2.0 is a pre-pilot build, not yet approved for production.** Use a staging WordPress site first. Live Meta inbox capture/insertion is **disabled by default** and still requires platform-permission and real-inbox verification. Suggestions are never automatically sent.
+> **v1.0.0 is a release candidate, not yet approved for production** until the owner signs it off. Engineering is complete and tested. Production approval is the owner's sign-off in [PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md) (backup, quality check on real messages, live-mode decision, hosting check, security review). **Messages are never sent automatically.**
 
 ---
 
 ## ✨ Overview
 
-RAR Inbox AI Assist helps a human support or sales representative prepare **three context-aware, fact-checked replies** for a customer message. The representative chooses a tone, edits the text and copies it into Meta Business Suite. An optional fourth sales-focused suggestion can be enabled.
+A staff member selects a customer's Messenger/Instagram message (or pastes it). The side panel then offers **three fact-checked replies** — Professional, Friendly and Short — in Bangla, Banglish or English. The staff member picks one, edits it, copies it into Meta Business Suite and presses Send.
 
-The WordPress plugin provides approved business knowledge, WooCommerce-aware product and price information, staff access controls and AI-provider integration. The Chrome extension provides a lightweight Bengali-first reply workspace directly alongside Messenger.
-
-### Human-in-the-loop workflow
+The WordPress plugin holds what the AI may say: approved answers, WooCommerce website prices, optional dealer price tiers, staff access, AI providers and limits. The Chrome extension is a Bangla-first side panel next to the Meta inbox.
 
 ```text
-Customer's Messenger message
-           ↓
-Staff selects text (or pastes it into the side panel)
-           ↓
-WordPress API → approved facts + PII masking → AI provider
-           ↓
-Professional   |   Friendly   |   Short   |   Sales-focused (optional)
-           ↓
-Select a suggestion → Review/Edit → Copy → Paste → Staff clicks Send
+Customer's message ─► staff selects / pastes (or live read on click)
+        ─► your WordPress site: approved facts + masking ─► AI (free or paid)
+        ─► Professional | Friendly | Short ─► fact guard on every number
+        ─► staff edits ─► Copy (or Insert) ─► staff presses Send
 ```
 
-**No auto-send. No guessed dealer prices. No automatic inbox scraping in the default safe mode.**
+**No auto-send. No invented prices. No background reading of the inbox.**
 
 ## 📦 Download & installation
 
-### Direct download — v0.2.0 pre-release
+Installable ZIPs are attached to each [GitHub Release](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases) by the release workflow, or built locally with `python3 scripts/package.py`:
 
-The **published v0.2.0 GitHub Pre-release** includes version-matched, installable ZIP packages, built by the release workflow:
-
-| Package | Direct download | Installation |
+| Package | File | Install |
 |:--|:--|:--|
-| **WordPress plugin** | [**Download Plugin v0.2.0 (.zip)**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/rar-inbox-ai-assist-0.2.0.zip) | WordPress → Plugins → Add New → Upload Plugin |
-| **Chrome extension** | [**Download Extension v0.2.0 (.zip)**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/rar-inbox-ai-assist-extension-0.2.0.zip) | Extract ZIP → `chrome://extensions` → Developer mode → Load unpacked |
-| **SHA-256 checksums** | [**Download SHA256SUMS**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/SHA256SUMS) | Verify package integrity |
-
-[**View v0.2.0 Pre-release**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/tag/v0.2.0) · [**GitHub Releases**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases) · [**Latest CI results**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/workflows/ci.yml) · [**Source ZIP (not installable)**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/archive/refs/heads/main.zip)
-
-> [!NOTE]
-> v0.2.0 is a **pre-release** and **not yet approved for production**. Release download URLs are public and do not require opening a temporary CI artifact. For current fixes, always check the latest [Releases](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases).
+| **WordPress plugin** | `rar-inbox-ai-assist-1.0.0.zip` | WordPress → Plugins → Add New → Upload Plugin |
+| **Chrome extension** | `rar-inbox-ai-assist-extension-1.0.0.zip` | Unzip → `chrome://extensions` → Developer mode → Load unpacked |
+| **Checksums** | `SHA256SUMS` | Verify the downloads |
 
 > [!CAUTION]
-> **Do not upload the complete GitHub Source Code ZIP into WordPress.** Upload only `rar-inbox-ai-assist-0.2.0.zip`. Chrome requires the **extracted extension ZIP folder**, with `manifest.json` at its root.
+> Do not upload the GitHub *Source code* ZIP into WordPress. Upload only the plugin ZIP. Chrome needs the **unzipped** extension folder, with `manifest.json` at its root.
 
-### Quick start: WordPress (staging recommended)
-
-1. **Back up both files and database**, then prepare a WordPress staging site.
-2. In **WP Admin → Plugins → Add New → Upload Plugin**, upload `rar-inbox-ai-assist-0.2.0.zip` and activate.
-3. Open **Inbox AI Assist → Settings**. Configure an AI provider (Gemini, Anthropic, OpenAI or a supported OpenAI-compatible endpoint), the correct token pricing and budget limits. Keep keys in secure server configuration where possible.
-4. Use **Test connection**, then add and approve the knowledge-base facts, dealer/price rules and product details your team is allowed to share.
-5. With LiteSpeed Cache, exclude the private API route `/wp-json/rar-iaa/`. Create an individual access token for each staff member.
-
-### Quick start: Chrome
-
-1. Extract `rar-inbox-ai-assist-extension-0.2.0.zip` to a permanent folder on your Windows PC.
-2. Open `chrome://extensions` → turn on **Developer mode** → select **Load unpacked** → choose the extracted folder containing `manifest.json`.
-3. Open [Meta Business Suite Inbox](https://business.facebook.com/latest/inbox) and the extension's side panel.
-4. Connect using the WordPress site address and a staff token created in **Inbox AI Assist → Access tokens**.
-5. **Safe first test:** select a test customer's message → generate suggestions → select and edit one → **Copy** → manually paste and review in the Messenger composer. **You** click Send.
-
-**Detailed instructions:** [docs/INSTALL.md](docs/INSTALL.md) — requirements, API settings, CSV format, caching, rollback and troubleshooting.
-
----
+**Quick start:** install the plugin → *Settings → AI providers*: add a free Gemini and/or Groq key and press **Test** → add approved answers → *Products & prices → Sync now* (WooCommerce) → each staff member creates a token → in the side panel enter your site address and the token. Full steps: [docs/INSTALL.md](docs/INSTALL.md).
 
 ## 🚀 Key features
 
 | Area | Capabilities |
 |:--|:--|
-| **AI reply assistant** | 3 independently checked suggestions — Professional, Friendly and Short; optional 4th Sales-focused |
-| **Languages** | Bangla, Banglish and English reply workflows |
-| **Business knowledge** | Approved FAQ answers, hours, contact details, ordering and policies |
-| **WooCommerce integration** | Product catalogue, website prices, stock status, dealer-tier price rules and sync snapshots |
-| **Dealer pricing** | Verified dealer-to-tier links; confidential dealer prices withheld from unlinked contacts |
-| **AI providers** | Gemini, Anthropic, OpenAI and configured OpenAI-compatible endpoints, with primary/fallback support |
-| **Human control** | Select → Edit → Copy; optional live Insert remains off until separately authorised/tested |
-| **Privacy and safety** | PII masking before AI egress, per-variant fact guard, revocable staff tokens and human handoff |
-| **Operational controls** | Rate limits, cost budget, concurrency cap, diagnostics, audit and emergency kill switch |
+| **Reply assistant** | 3 independently checked suggestions (optional 4th Sales-focused). Staff note for product photos. Rewrite (shorter, polite, formal, Bangla/English) with undo |
+| **Languages** | Bangla, Banglish (reply in Bangla script or Banglish) and English, following the customer's recent messages |
+| **Business knowledge** | Approved answers with maker-checker approval and effective dates |
+| **WooCommerce** | Website price for regular customers; dealer tiers as WooCommerce price ± % or CSV; live stock; automatic sync with rollback snapshots |
+| **AI providers** | Google Gemini and Groq/OpenRouter (free tiers), Anthropic and OpenAI (paid); primary + automatic fallback; per-provider tests |
+| **Human control** | Select → Edit → Copy; optional live read + Insert on click; never sends |
+| **Privacy & safety** | Masking before any AI call, fact guard on every number, no stored conversation text, revocable per-person tokens, handoff flags |
+| **Operations** | Per-minute/daily limits, monthly budget, concurrency cap, health checks, audit log, CSV export, kill switch |
 
-### What's new in v0.2.0
+## 🛡️ How accuracy is protected
 
-- **WooCommerce-powered pricing:** Products and stock can use WooCommerce data, with tier-based rules, website-price eligibility, syncing and rollback.
-- **More AI choices:** Google Gemini and OpenAI-compatible providers alongside Anthropic/OpenAI, with configurable fallback.
-- **Improved administration:** Setup checklist, Products & Prices page, provider configuration and enhanced plugin navigation.
-- **Safer panel connection:** Improved handling of the site's `www` variation and cross-origin redirects.
+- Suggestions may only use **approved answers and price lists**.
+- **Every number is checked.** An unapproved price or percentage is blocked and replaced by a polite holding reply.
+- A price the **customer** writes never becomes a quote.
+- **Dealer prices** appear only in a conversation linked to an active dealer.
+- Regular customers are never asked for dealer details.
+- Complaints, credit, discounts, order confirmations and returns are flagged for a person.
 
-See the complete [CHANGELOG.md](CHANGELOG.md).
+These safeguards are built in and tested, but they do not guarantee perfect replies. **Staff review every reply before sending.**
 
-## 🛡️ How reply accuracy is protected
+## ✅ Verification
 
-- **Only approved business facts** support company claims and quotations.
-- Dealer-tier prices require a **linked, active dealer**; a price supplied by a customer does not become an approved quote.
-- Unsupported prices and percentages trigger guard handling instead of confident fabricated answers.
-- Complaints, credit, discounts, order confirmation and other sensitive cases can be escalated to a human.
-- Customer message text is masked before AI-provider calls, with controls designed to prevent persistence of raw conversation text.
-
-These are **implemented design safeguards**, not a guarantee of perfect replies. **Staff must review every draft before sending.**
-
-## ✅ Verification & current limitations
-
-| Item | Latest repository-reported status |
+| Item | Status |
 |:--|:--|
-| GitHub CI workflow | **Passing** on v0.2.0 main branch |
-| PHP plugin checks | **592/592** on MariaDB + WooCommerce; **532/532** on SQLite |
-| Extension unit tests | **23/23** |
-| Mock-inbox end-to-end tests | **21/21**, including accessibility checks |
-| Real Meta Business Suite capture/insert | **Not verified**; disabled by default |
-| Real provider API key + billing workflow | **Not verified** |
-| Hostinger storefront load/campaign benchmark | **Not completed** |
-| Independent security review | **Pending** |
-| Production approval | **Not approved** |
-
-[**View CI Results**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/workflows/ci.yml) · [**Live Project Status**](PROJECT_STATUS.md) · [**Implementation Plan**](docs/06_Plan.md)
+| Plugin tests (PHP 7.4–8.4, MariaDB + WooCommerce HPOS on/off, SQLite) | Passing — counts in [06_Plan.md](docs/06_Plan.md) Phase 8 |
+| Extension unit tests · mock-inbox end-to-end · axe-core WCAG 2.1 A/AA | Passing |
+| GitHub CI | [Latest results](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/workflows/ci.yml) |
+| Live use on a real site (Gemini + Groq, real inbox drafting) | Evidence recorded in [PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md) §B |
+| Owner production checks and sign-off | [PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md) §C |
 
 ## 🧑‍💻 For developers
 
 ```bash
 git clone https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist.git
 cd RAR-Inbox-AI-Assist
-
-# Generate the two installable v0.2.0 ZIPs + checksums
-python3 scripts/package.py
-
-# Chrome extension unit tests
-npm ci
-npm run test:ext
-
-# Documentation and token-design checks
-python3 scripts/check_docs.py
-python3 scripts/check_tokens.py
+python3 scripts/package.py            # plugin ZIP, extension ZIP, SHA256SUMS
+npm ci && node --test tests/ext/*.test.mjs
+python3 scripts/check_docs.py && python3 scripts/check_tokens.py
 ```
 
-The WordPress integration suite needs a dedicated WordPress test environment; see [docs/INSTALL.md](docs/INSTALL.md), [CI workflow](.github/workflows/ci.yml) and [tests/](tests/). Never run test fixtures on the live store.
+The WordPress suites need a throwaway WordPress site (`bash scripts/ci/setup-wp.sh`); see [CLAUDE.md](CLAUDE.md) and the [CI workflow](.github/workflows/ci.yml). Never run test fixtures on a live store.
 
-## 📚 Project documentation
+## 📚 Documentation
 
 | File | Purpose |
 |:--|:--|
-| [Product Requirements](docs/01_PRD.md) | Scope, user stories and acceptance criteria |
-| [Application Flow](docs/02_AppFlow.md) | States, user journeys and fallbacks |
-| [UI Specification](docs/03_UI_Spec.md) | Design tokens and components |
-| [Technical Requirements](docs/04_TRD.md) | Architecture, APIs and security |
-| [Database Schema](docs/05_Schema.md) | Data tables, integrity and permissions |
-| [Implementation Plan](docs/06_Plan.md) | Tasks, quality gates and release plan |
-| [Installation Guide](docs/INSTALL.md) | Installation and testing procedures |
+| [Installation Guide](docs/INSTALL.md) | Install, connect AI (free first), products, extension, daily use |
+| [Production readiness](docs/PRODUCTION_READINESS.md) | What is verified and the owner's approval checklist |
+| [Privacy](docs/PRIVACY.md) | What data is handled, where it goes, what is stored |
+| [Product Requirements](docs/01_PRD.md) · [App Flow](docs/02_AppFlow.md) · [UI Spec](docs/03_UI_Spec.md) | Scope, flows, design |
+| [Technical Requirements](docs/04_TRD.md) · [Schema](docs/05_Schema.md) · [Plan](docs/06_Plan.md) | Architecture, data, tasks and gates |
 
-Contributions should follow [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
+Contributions: [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md). Licence: GPL-2.0-or-later.
 
 ---
 
 <div align="center">
 
-**Developed for Nabiad Distribution Limited**  
 *AI drafts the reply. Your team makes the final decision.*
-
-[Repository](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist) · [Download Plugin](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/rar-inbox-ai-assist-0.2.0.zip) · [Download Extension](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/rar-inbox-ai-assist-extension-0.2.0.zip) · [Installation Guide](docs/INSTALL.md)
 
 </div>

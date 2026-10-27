@@ -125,3 +125,11 @@ body { margin: 0; background: var(--iaa-bg); color: var(--iaa-text); font-family
 .iaa-steps li::before { content: counter(iaa-step); position: absolute; left: var(--iaa-space-3); top: var(--iaa-space-2); width: var(--iaa-space-5); height: var(--iaa-space-5); border-radius: var(--iaa-radius-pill); background: var(--iaa-primary); color: var(--iaa-on-primary); font-size: var(--iaa-fs-xs); font-weight: var(--iaa-fw-semibold); display: flex; align-items: center; justify-content: center; }
 .iaa-steps li span { color: var(--iaa-text-muted); font-size: var(--iaa-fs-xs); }
 .iaa-meta { display: flex; flex-wrap: wrap; gap: var(--iaa-space-1) var(--iaa-space-3); }
+
+/* 1.0.0: diagnostics key/value list, request log, folded how-to */
+.iaa-kv { display: grid; grid-template-columns: minmax(0, 40%) minmax(0, 1fr); gap: var(--iaa-space-2) var(--iaa-space-3); margin: 0; font-size: var(--iaa-fs-sm); }
+.iaa-kv dt { color: var(--iaa-text-muted); }
+.iaa-kv dd { margin: 0; overflow-wrap: anywhere; }
+.iaa-log { list-style: none; margin: 0; padding: var(--iaa-space-2) var(--iaa-space-3); background: var(--iaa-surface-2); border-radius: var(--iaa-radius-sm); font-size: var(--iaa-fs-xs); display: flex; flex-direction: column; gap: 2px; }
+.iaa-howto summary { cursor: pointer; padding: var(--iaa-space-1) 0; }
+.iaa-howto[open] summary { margin-bottom: var(--iaa-space-2); }

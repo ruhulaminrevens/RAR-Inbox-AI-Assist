@@ -113,7 +113,8 @@
 .iaa-badge--blocked { background: var(--iaa-danger-bg); color: var(--iaa-danger); }
 .iaa-ok { color: var(--iaa-success); font-weight: var(--iaa-fw-semibold); white-space: nowrap; }
 .iaa-bad { color: var(--iaa-danger); font-weight: var(--iaa-fw-semibold); white-space: nowrap; }
-.iaa-ok .dashicons, .iaa-bad .dashicons { font-size: 18px; width: 18px; height: 18px; vertical-align: text-bottom; }
+.iaa-info { color: var(--iaa-info); font-weight: var(--iaa-fw-semibold); white-space: nowrap; }
+.iaa-ok .dashicons, .iaa-bad .dashicons, .iaa-info .dashicons { font-size: 18px; width: 18px; height: 18px; vertical-align: text-bottom; }
 .iaa-empty { text-align: center; padding: var(--iaa-space-6) var(--iaa-space-4); background: var(--iaa-surface); border: 1px dashed var(--iaa-border-strong); border-radius: var(--iaa-radius-lg); color: var(--iaa-text-muted); }
 .iaa-empty .dashicons { font-size: 40px; width: 40px; height: 40px; color: var(--iaa-primary); }
 .iaa-empty__title { font-size: var(--iaa-fs-lg); font-weight: var(--iaa-fw-semibold); color: var(--iaa-text); margin: var(--iaa-space-2) 0 0; }

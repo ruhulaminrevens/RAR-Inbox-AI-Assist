@@ -35,7 +35,7 @@ class FactSelector {
 		$tokens = Util::tokens( $customer_text );
 		$norm   = ' ' . Util::normalize( $customer_text ) . ' ';
 		$facts  = array(
-			'business_name' => (string) Settings::get( 'business_name' ),
+			'business_name' => Settings::business_name(),
 			'today'         => self::today(),
 			'audience'      => 'unverified',
 			'kb'            => array(),
@@ -193,6 +193,15 @@ class FactSelector {
 	public static function match_products( array $items, array $tokens, $norm ) {
 		$scored = array();
 		$set    = array_flip( $tokens );
+		$fuzzy  = array();
+		$long   = array_values(
+			array_filter(
+				array_unique( $tokens ),
+				static function ( $t ) {
+					return strlen( $t ) >= 4;
+				}
+			)
+		);
 		foreach ( $items as $item ) {
 			$score = 0;
 			$code  = Util::normalize( $item->item_code );
@@ -218,11 +227,18 @@ class FactSelector {
 					continue;
 				}
 				if ( strlen( $nt ) >= 4 && preg_match( '/^[a-z0-9]+$/', $nt ) ) {
-					foreach ( $tokens as $t ) {
-						if ( strlen( $t ) >= 4 && Util::similarity( $nt, $t ) >= 0.8 ) {
-							$hits += 0.8;
-							break;
+					// Product names repeat the same words; remember each fuzzy verdict (1.0.0 optimisation).
+					if ( ! isset( $fuzzy[ $nt ] ) ) {
+						$fuzzy[ $nt ] = false;
+						foreach ( $long as $t ) {
+							if ( Util::similarity( $nt, $t ) >= 0.8 ) {
+								$fuzzy[ $nt ] = true;
+								break;
+							}
 						}
+					}
+					if ( $fuzzy[ $nt ] ) {
+						$hits += 0.8;
 					}
 				}
 			}

@@ -1,6 +1,6 @@
 # 06 — Implementation Roadmap & Execution Tracker
 
-**Status:** Draft v0.2 · 27 Oct 2026
+**Status:** 1.0.0 release candidate · 28 Oct 2026 (production approval = owner sign-off in [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md))
 **Documentation publication authorised:** YES, owner request 27 Oct 2026.
 **Implementation authorised:** YES — owner message 27 Oct 2026 ("কার্যকর Chrome Extension এবং WordPress Plugin-এর কোড & file তৈরি কর"). Production deployment is **not** authorised by this; it follows G2/T5.02 (backup) and the owner's own install.
 **Related:** [01_PRD](01_PRD.md) · [02_AppFlow](02_AppFlow.md) · [03_UI_Spec](03_UI_Spec.md) · [04_TRD](04_TRD.md) · [05_Schema](05_Schema.md)
@@ -605,6 +605,19 @@ Found on the live inbox (PRD §18). Staff note approved by the owner in chat on 
 | T7.04 | Prompt p4: no example quantities (BR-14) | DONE | 2026-10-27: prompt text test in `m_v021.php`; model behaviour not verifiable without a live provider. |
 | T7.05 | Primary time cap + readable provider errors + pill (NFR-13) | DONE | 2026-10-27: `m_v021.php` primary failing after 12.5 s → fallback answers within 20 s (fails on 0.2.0 code); error text cases. Live Gemini/Groq behaviour still owner-verified only. |
 | T7.06 | Release 0.2.1 | DONE | 2026-10-27: versions bumped together; results recorded in the Phase 7 evidence line below. |
+
+## Phase 8 — 1.0.0 for any business in Bangladesh (27–28 Oct 2026)
+
+Owner request: "FIX, Optimized & UI aro polished, professional & production grade … global/universal & publically use … final, complete and ready to approved for production grade", narrowed to "যেকোনো business, bangladesh" (OD-18). PRD §19, TRD §23. Evidence: `php tests/php/run-all.php` → 659/659 on MariaDB + WooCommerce, 595/595 on SQLite, 657/657 on the 0.2.1 ZIP site upgraded in place to the 1.0.0 ZIP (tokens, answers, dealers, price lists and the stored business name kept; schema 3); `node --test tests/ext/*.test.mjs` → 25/25; `node tests/e2e/run.mjs` → 22/22 on all three sites (packaged extension on the ZIP site; axe-core 0 serious/critical); PHPCompatibility 7.4–8.4 clean; `check_docs.py`, `check_tokens.py` PASS.
+
+| ID | Task | Status | Notes |
+|---|---|---|---|
+| T8.01 | No built-in business (FR-30) | DONE | 2026-10-28: `n_v100.php` (business name: setting → site title; no company in the prompt); ext unit (`DEFAULT_SITE` empty, `originPatterns`, manifest host permissions = Meta only, not connected without a site); E2E connect requires the site address. |
+| T8.02 | Retail-first replies (FR-31) | DONE | 2026-10-28: `unit/guard.php` website price without unit passes, other public price still blocked, dealer price without unit still warned; `n_v100.php` prompt p5 rule, `Settings::initial()`, `/me public_prices`; E2E audience line "সাধারণ কাস্টমার". |
+| T8.03 | Polish (FR-32) | DONE | 2026-10-28: screenshot review of every panel and admin view (`IAA_E2E_SHOTS`); `n_v100.php` header shows version only, no task IDs in health, maintenance OK/Info/attention cases; E2E diagnostics show the real version and no "null" text. |
+| T8.04 | Large-catalogue matching (NFR-14) | DONE | 2026-10-28: 5,000 synthetic products, same 15 matches, 102 → 38 ms per draft; `n_v100.php` misspelt-name case. |
+| T8.05 | Security self-review | DONE | 2026-10-28: REST permission callbacks (9 routes, none `__return_true`), single admin dispatcher (capability + nonce), CSV formula escaping, token/redirect rules, host permission per site. Independent review stays owner check C7 (T4.05). |
+| T8.06 | Release docs | DONE | 2026-10-28: `INSTALL.md` (generic, free AI first), `PRODUCTION_READINESS.md` (verified items, live evidence, owner checklist + sign-off), `PRIVACY.md`, plugin `readme.txt`, README, PROJECT_STATUS, CHANGELOG. |
 
 ## Blockers log
 

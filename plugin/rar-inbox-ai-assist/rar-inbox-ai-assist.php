@@ -1,11 +1,13 @@
 <?php
 /**
  * Plugin Name:       RAR Inbox AI Assist
- * Description:       Fact-checked reply suggestions for Meta Business Suite inbox staff. Approved knowledge base, dealer price lists, masking, budget limits. Never sends messages.
- * Version:           0.2.1
+ * Plugin URI:        https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist
+ * Description:       Fact-checked AI reply suggestions for Meta Business Suite inbox staff in Bangladesh: approved answers, WooCommerce website prices, dealer price tiers, masking, budget limits. Free (Gemini, Groq) or paid AI. Never sends messages.
+ * Version:           1.0.0
  * Requires at least: 6.4
  * Requires PHP:      7.4
- * Author:            Nabiad Distribution Limited
+ * Author:            Ruhul Amin
+ * Author URI:        https://github.com/ruhulaminrevens
  * License:           GPL-2.0-or-later
  * Text Domain:       rar-inbox-ai-assist
  * WC requires at least: 8.0
@@ -15,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'RAR_IAA_VERSION', '0.2.1' );
+define( 'RAR_IAA_VERSION', '1.0.0' );
 define( 'RAR_IAA_SCHEMA_VERSION', 3 );
 define( 'RAR_IAA_FILE', __FILE__ );
 define( 'RAR_IAA_DIR', __DIR__ );

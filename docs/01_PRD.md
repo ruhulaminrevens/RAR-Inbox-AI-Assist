@@ -347,3 +347,14 @@ Found by the owner on the live inbox: a customer sent a product photo with "এ�
 | BR-13 | **Unknown product is not a handoff.** "Price asked but cannot be given" (`unknown_dealer_price`) applies only when a product was recognised. When none was recognised the suggestion asks which product and unit, and a model flag `unknown_dealer_price` is ignored for that draft; other handoff reasons are unchanged. | P0 |
 | BR-14 | Suggestions must not give example sizes or quantities ("1kg, 500ml") that are not in the facts. | P1 |
 | NFR-13 | **Provider time budget.** With a fallback configured the primary gets at most 12 s of the 20 s request budget, so the fallback is still tried; admin test results explain common provider errors (key rejected, model not found, limit reached, overloaded). | P1 |
+
+## 19. 1.0.0 — any business in Bangladesh (owner request, 27–28 Oct 2026)
+
+The owner asked for a final, polished, production-grade build "for global/universal and public use" and then narrowed it to **any business, Bangladesh** (Bangla panel, ৳, Bangla/Banglish/English replies). Recorded as OD-18.
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-30 | **No built-in business.** Nothing names a specific company. The business name in prompts is the setting, or the WordPress site title when empty. The extension has no default site: staff enter their site address on connect, and Chrome grants host access to that site (and its www twin) at that moment. | P0 |
+| FR-31 | **Retail-first replies.** A contact not linked to a dealer is a regular customer. Suggestions never ask them for dealer details. With WooCommerce active, *Public prices* is ON on a fresh install, so the website price can be quoted. A public website price needs no unit next to it (no `PRICE_UNIT_UNCLEAR`). The panel calls the audience "সাধারণ কাস্টমার", and the price handoff reads "দাম নিশ্চিত করে জানাতে হবে". | P0 |
+| FR-32 | **Polish.** The admin header shows the version only. Health checks have OK / Info / Needs attention and use plain language (no internal task IDs); daily maintenance is "Info" until its first scheduled run and "attention" only when overdue or unscheduled. All admin text inputs use WordPress styles. The panel folds the how-to steps after the first suggestion, places the staff note above the action buttons, and shows diagnostics as a compact list with the real extension version. | P1 |
+| NFR-14 | **Large catalogues.** Product matching memoises fuzzy word checks (5,000 products: ~100 ms → ~40 ms per draft, same results). | P2 |

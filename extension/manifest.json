@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "RAR Inbox AI Assist",
   "short_name": "Inbox AI Assist",
-  "version": "0.2.1",
-  "description": "Fact-checked reply suggestions for Nabiad's Meta Business Suite inbox staff. Never sends messages.",
+  "version": "1.0.0",
+  "description": "Fact-checked AI reply suggestions for Meta Business Suite inbox staff, from your WordPress site's approved answers and WooCommerce prices. Never sends messages.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon-16.png",
@@ -31,9 +31,7 @@
     "clipboardWrite"
   ],
   "host_permissions": [
-    "https://business.facebook.com/*",
-    "https://nabiad.com/*",
-    "https://www.nabiad.com/*"
+    "https://business.facebook.com/*"
   ],
   "optional_host_permissions": [
     "https://*/*",

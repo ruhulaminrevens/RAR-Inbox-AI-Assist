@@ -63,7 +63,7 @@ class Settings {
 			'extra_use_roles'          => array(),
 			'extra_link_roles'         => array(),
 			'delete_data_on_uninstall' => 0,
-			'business_name'            => 'Nabiad Distribution Limited',
+			'business_name'            => '', // empty = the WordPress site title (1.0.0)
 			'holding_reply_bn'         => 'ধন্যবাদ। আপনার প্রশ্নের সঠিক তথ্য নিশ্চিত করে কিছুক্ষণের মধ্যে জানাচ্ছি।',
 			'holding_reply_en'         => 'Thank you. We will confirm the correct information and get back to you shortly.',
 			'banned_phrases'           => "১০০% গ্যারান্টি\nগ্যারান্টি দিচ্ছি\nguarantee\nguaranteed\nঅবশ্যই পৌঁছে যাবে\nfree delivery\nফ্রি ডেলিভারি",
@@ -72,12 +72,33 @@ class Settings {
 		);
 	}
 
+	/**
+	 * Settings for a fresh install: the defaults, plus public (website) prices ON when WooCommerce is
+	 * active — a shop's website price is public anyway (1.0.0). Existing installs keep their settings.
+	 */
+	public static function initial() {
+		$d = self::defaults();
+		if ( class_exists( 'WooCommerce' ) ) {
+			$d['allow_public_mrp'] = 1;
+		}
+		return $d;
+	}
+
 	public static function all() {
 		if ( null === self::$cache ) {
 			$stored      = get_option( self::OPTION, array() );
 			self::$cache = array_merge( self::defaults(), is_array( $stored ) ? $stored : array() );
 		}
 		return self::$cache;
+	}
+
+	/** Business name used in prompts: the setting, or the WordPress site title when empty. */
+	public static function business_name() {
+		$name = trim( (string) self::get( 'business_name' ) );
+		if ( '' === $name ) {
+			$name = trim( wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ) );
+		}
+		return '' === $name ? 'our business' : $name;
 	}
 
 	public static function get( $key ) {
@@ -153,7 +174,7 @@ class Settings {
 				$v = trim( sanitize_textarea_field( (string) $input[ $k ] ) );
 				if ( Util::strlen( $v ) > $max ) {
 					$errors[ $k ] = sprintf( 'Maximum %d characters.', $max );
-				} elseif ( '' === $v && 'banned_phrases' !== $k ) {
+				} elseif ( '' === $v && ! in_array( $k, array( 'banned_phrases', 'business_name' ), true ) ) {
 					$errors[ $k ] = 'Required.';
 				} else {
 					$clean[ $k ] = $v;

@@ -3,8 +3,9 @@
  * Storage: chrome.storage.local, restricted to TRUSTED_CONTEXTS (no content-script access).
  */
 
-export const DEFAULT_SITE = 'https://nabiad.com';
-export const VERSION = '0.2.1';
+/** No built-in site: each business connects its own WordPress site (1.0.0). */
+export const DEFAULT_SITE = '';
+export const VERSION = '1.0.0';
 const TIMEOUT_MS = 25000;
 export const TOKEN_RE = /^iaa_[a-z0-9]{8}_[A-Za-z0-9]{40}$/;
 
@@ -26,7 +27,7 @@ export function apiBaseFor( site ) {
 }
 
 /**
- * The www / non-www twin of a site (https://nabiad.com ⇄ https://www.nabiad.com), or null.
+ * The www / non-www twin of a site (https://example.com ⇄ https://www.example.com), or null.
  * Used when the typed address redirects: the token is never sent through a redirect.
  */
 export function wwwTwin( site ) {
@@ -55,7 +56,7 @@ export class Api {
 	async config() {
 		const v = await this.storage.get( [ 'iaa.token', 'iaa.site', 'iaa.base' ] );
 		const site = v[ 'iaa.site' ] || DEFAULT_SITE;
-		return { token: v[ 'iaa.token' ] || null, site, base: v[ 'iaa.base' ] || apiBaseFor( site ) };
+		return { token: v[ 'iaa.token' ] || null, site, base: v[ 'iaa.base' ] || ( site ? apiBaseFor( site ) : '' ) };
 	}
 
 	async saveConnection( token, site, base ) {
@@ -72,7 +73,7 @@ export class Api {
 	async request( method, path, { body, params, headers, token, base, redirect } = {} ) {
 		const cfg = await this.config();
 		const tk = token || cfg.token;
-		if ( ! tk ) {
+		if ( ! tk || ! ( base || cfg.base ) ) {
 			return { ok: false, status: 401, data: null, error: { code: 'AUTH_MISSING', message: 'Not connected', data: {} }, requestId: null };
 		}
 		const ctrl = new AbortController();
@@ -120,5 +121,24 @@ export class Api {
 			err.data.request_id = requestId;
 		}
 		return { ok: false, status: res.status, data: null, error: err, requestId };
+	}
+}
+
+/** Host-permission patterns for a site and its www twin (requested from the panel on connect). */
+export function originPatterns( siteOrBase ) {
+	try {
+		const u = new URL( siteOrBase );
+		if ( u.protocol !== 'https:' && ! [ 'localhost', '127.0.0.1' ].includes( u.hostname ) ) {
+			return null;
+		}
+		// Match patterns ignore ports, so http://127.0.0.1/* covers a local test server on any port.
+		const out = [ `${ u.protocol }//${ u.hostname }/*` ];
+		const twin = u.protocol === 'https:' ? wwwTwin( u.origin ) : null;
+		if ( twin ) {
+			out.push( `${ twin }/*` );
+		}
+		return out;
+	} catch ( e ) {
+		return null;
 	}
 }

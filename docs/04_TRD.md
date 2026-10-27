@@ -524,3 +524,15 @@ Implements PRD §18 (FR-29, FR-10a, BR-13, BR-14, NFR-13).
 - **Provider chain** (amends §21): with a fallback the primary's deadline is 12 s (`PRIMARY_CAP`) instead of the full 20 s; the fallback is tried when ≥ 6 s remain (`FALLBACK_MIN`, was 10). Within one provider a retry/repair is skipped when < 3 s of its deadline remain, and the previous attempt's error is reported. HTTP errors read `AI provider error: <provider type> (<meaning>).` via `ProviderFactory::http_error_message()`; timeouts state the seconds waited. No body, key or model internals.
 - **Admin pill** shows `(not set)` for a selected provider that cannot be built (missing key/model).
 - **Extension**: `state.js noteFor()` (conversation-scoped, single line, 200 chars); `panel.js` adds the field to S-03 and `staff_note` to selection/capture/paste requests.
+
+## 23. 1.0.0 changes (28 Oct 2026)
+
+Implements PRD §19 (FR-30 – FR-32, NFR-14).
+
+- **Settings:** `business_name` default `''`; `Settings::business_name()` returns the setting, else the site title, else "our business". Validation allows empty. `Settings::initial()` = defaults + `allow_public_mrp = 1` when WooCommerce is active; used only when the settings option is first created. Existing installs keep their values.
+- **Prompt** `p5`: "staff of {business}, a business in Bangladesh, answering customer and dealer messages". Rule 10: unverified = regular customer; never ask for dealer details, a dealer code or verification; quote `public_prices` with their label, else say the price will be confirmed.
+- **Guard:** `PRICE_UNIT_UNCLEAR` is not raised for a value that equals a `public_prices` entry (`mrp_bdt`). Matching and blocking are unchanged.
+- **`GET /me`** `settings` adds `public_prices` (bool), for the panel's audience line.
+- **Extension:** `manifest.host_permissions` = `https://business.facebook.com/*` only. The business site is requested through `optional_host_permissions` on connect (`lib/api.js originPatterns()`: site + www twin, port-less for local hosts). `DEFAULT_SITE = ''`. Without a saved site the client is "not connected" (`AUTH_MISSING`). `status` returns `hasToken`. When a token is saved but the site permission is missing (e.g. after updating from 0.2.x, whose manifest granted nabiad.com), the panel shows an **অনুমতি দিন** screen that re-requests it with the saved token. New error texts: `SITE_REQUIRED`, `PERMISSION`. `chrome.storage.local` keys add `iaa.onboarded`.
+- **Admin health rows:** status is `true` / `false` / `'info'`; the "Fix" button is shown only for `false`. Daily maintenance uses the last-run option plus `wp_next_scheduled()` (OK; info while the first run is pending; attention if unscheduled, an hour past due, or the last run is older than 2 days).
+- **Product matching:** `FactSelector::match_products()` memoises fuzzy verdicts per product-name word for the request.

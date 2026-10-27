@@ -7,6 +7,7 @@
 import { icon } from './ui/icons.js';
 import { parseKey, isInboxUrl, uuid4 } from '../lib/ids.js';
 import { editDistance, squash } from '../lib/text.js';
+import { originPatterns } from '../lib/api.js';
 import {
 	VARIANT_LABELS, HANDOFF_LABELS, GUARD_LABELS, ERROR_ACTIONS,
 	warningText, errorText, isStale, insertCheck, selectedSuggestion, advisoryFor,
@@ -33,6 +34,8 @@ const S = {
 	note: { text: '', conv: null }, // staff note (product in a photo); only for the conversation it was typed for
 	gen: 0,
 	quick: { q: '', results: [], lang: 'bn' },
+	needPermission: false,
+	onboarded: false, // true after the first suggestion on this browser (steps fold away)
 	busy: false,
 };
 
@@ -129,7 +132,9 @@ function can( cap ) {
 
 async function boot() {
 	try {
-		const t = ( await chrome.storage.local.get( 'iaa.theme' ) )[ 'iaa.theme' ];
+		const st = await chrome.storage.local.get( [ 'iaa.theme', 'iaa.onboarded' ] );
+		S.onboarded = !! st[ 'iaa.onboarded' ];
+		const t = st[ 'iaa.theme' ];
 		if ( t === 'light' || t === 'dark' ) {
 			document.documentElement.setAttribute( 'data-theme', t );
 		}
@@ -144,14 +149,29 @@ async function boot() {
 	await loadStatus();
 }
 
+/** Does the extension hold the host permission for this site (granted on connect)? */
+async function hasSitePermission( site ) {
+	const origins = originPatterns( site || '' );
+	if ( ! origins || ! chrome.permissions || ! chrome.permissions.contains ) {
+		return true;
+	}
+	try {
+		return await chrome.permissions.contains( { origins: [ origins[ 0 ] ] } );
+	} catch ( e ) {
+		return true;
+	}
+}
+
 async function loadStatus() {
 	const st = await bg( 'status' );
 	S.site = st && st.site;
 	if ( ! st || ! st.connected ) {
 		S.me = null;
-		go( 'connect', st && st.error ? errorText( st.error.code, st.error.data ) : null );
+		S.needPermission = !! ( st && st.hasToken && st.site && ! ( await hasSitePermission( st.site ) ) );
+		go( 'connect', S.needPermission ? null : ( st && st.error ? errorText( st.error.code, st.error.data ) : null ) );
 		return;
 	}
+	S.needPermission = false;
 	S.me = st.me;
 	S.live = !! ( st.me.settings && st.me.settings.live_inbox );
 	if ( ! st.me.service.enabled ) {
@@ -299,6 +319,10 @@ async function createDraft( body, convAtCapture, idem = null ) {
 	S.undo = null;
 	S.stale = S.draft.conv ? isStale( S.draft.conv, S.tab.url ) : false;
 	go( 'suggestions' );
+	if ( ! S.onboarded ) {
+		S.onboarded = true;
+		chrome.storage.local.set( { 'iaa.onboarded': true } ).catch( () => {} );
+	}
 	const warned = d.suggestions.filter( ( x ) => x.guard.result !== 'pass' ).length;
 	announce( `${ d.suggestions.length }টি সাজেশন তৈরি` + ( warned ? `, ${ warned }টিতে সতর্কতা` : '' ) );
 }
@@ -469,35 +493,74 @@ function viewLoading() {
 }
 
 /* ---------------- S-01 Connect */
+
+/** Ask Chrome for access to the site (and its www twin). Must run inside a click handler. */
+async function requestSitePermission( siteOrBase ) {
+	const origins = originPatterns( siteOrBase );
+	if ( ! origins ) {
+		return { ok: false, code: 'SITE_INVALID' };
+	}
+	if ( ! chrome.permissions || ! chrome.permissions.request ) {
+		return { ok: true };
+	}
+	try {
+		return { ok: !! ( await chrome.permissions.request( { origins } ) ), code: 'PERMISSION' };
+	} catch ( e ) {
+		return { ok: false, code: 'SITE_INVALID' };
+	}
+}
+
 function viewConnect( message ) {
-	const tokenInput = h( 'input', { class: 'iaa-input', id: 'iaa-token', type: 'password', autocomplete: 'off', spellcheck: 'false', placeholder: 'iaa_xxxxxxxx_…' } );
-	const siteInput = h( 'input', { class: 'iaa-input', id: 'iaa-site', type: 'url', value: S.site || 'https://nabiad.com' } );
+	if ( S.needPermission ) {
+		const err = h( 'p', { class: 'iaa-error-text', role: 'alert' } );
+		return [
+			h( 'h2', { class: 'iaa-h2' }, 'সাইটে সংযোগের অনুমতি দিন' ),
+			h( 'p', { class: 'iaa-help' }, `${ S.site } — এই সাইটে এক্সটেনশনের অনুমতি নেই (আপডেটের পর একবার দরকার হতে পারে)। আপনার token আগের মতোই থাকবে।` ),
+			err,
+			btn( 'অনুমতি দিন', async () => {
+				const r = await requestSitePermission( S.site );
+				if ( ! r.ok ) {
+					err.textContent = errorText( r.code === 'PERMISSION' ? 'PERMISSION' : 'SITE_REQUIRED' );
+					return;
+				}
+				await loadStatus();
+			}, 'primary', 'plug' ),
+			btn( 'অন্য সাইট / নতুন token', () => {
+				S.needPermission = false;
+				go( 'connect' );
+			}, 'ghost' ),
+		];
+	}
+	const tokenInput = h( 'input', { class: 'iaa-input', id: 'iaa-token', type: 'password', autocomplete: 'off', spellcheck: 'false', placeholder: 'iaa_xxxxxxxx_…', 'aria-describedby': 'iaa-token-err' } );
+	const siteInput = h( 'input', { class: 'iaa-input', id: 'iaa-site', type: 'url', inputmode: 'url', autocomplete: 'url', value: S.site || '', placeholder: 'https://www.example.com' } );
 	const baseInput = h( 'input', { class: 'iaa-input', id: 'iaa-base', type: 'url', placeholder: '(ঐচ্ছিক) API base' } );
 	const err = h( 'p', { class: 'iaa-error-text', id: 'iaa-token-err', role: 'alert' } );
 	const connect = async () => {
 		const token = tokenInput.value.trim();
+		let site = siteInput.value.trim().replace( /\/+$/, '' );
+		if ( site && ! /^https?:\/\//i.test( site ) ) {
+			site = `https://${ site }`;
+		}
+		const base = baseInput.value.trim() || null;
+		if ( ! site && ! base ) {
+			err.textContent = errorText( 'SITE_REQUIRED' );
+			siteInput.setAttribute( 'aria-invalid', 'true' );
+			siteInput.focus();
+			return;
+		}
+		siteInput.removeAttribute( 'aria-invalid' );
 		if ( ! /^iaa_[a-z0-9]{8}_[A-Za-z0-9]{40}$/.test( token ) ) {
 			err.textContent = 'Token ঠিক নেই। wp-admin → Inbox AI Assist → Access tokens থেকে নতুন token নিন।';
 			tokenInput.setAttribute( 'aria-invalid', 'true' );
 			return;
 		}
-		let site = siteInput.value.trim().replace( /\/+$/, '' ) || 'https://nabiad.com';
-		const base = baseInput.value.trim() || null;
-		try {
-			const origin = new URL( base || site ).origin;
-			if ( ! [ 'https://nabiad.com', 'https://www.nabiad.com' ].includes( origin ) ) {
-				const granted = await chrome.permissions.request( { origins: [ origin + '/*' ] } );
-				if ( ! granted ) {
-					err.textContent = 'এই সাইটে সংযোগের অনুমতি দেওয়া হয়নি।';
-					return;
-				}
-			}
-		} catch ( e ) {
-			err.textContent = 'সাইটের ঠিকানা ঠিক নেই।';
+		const perm = await requestSitePermission( base || site );
+		if ( ! perm.ok ) {
+			err.textContent = perm.code === 'PERMISSION' ? errorText( 'PERMISSION' ) : 'সাইটের ঠিকানা ঠিক নেই (https:// দিয়ে শুরু হতে হবে)।';
 			return;
 		}
 		err.textContent = 'সংযোগ করা হচ্ছে…';
-		const r = await bg( 'connect', { token, site, base } );
+		const r = await bg( 'connect', { token, site: site || new URL( base ).origin, base } );
 		if ( r && r.ok ) {
 			tokenInput.value = '';
 			toast( r.movedTo ? `সংযোগ হয়েছে (${ new URL( r.movedTo ).hostname })।` : 'সংযোগ হয়েছে।' );
@@ -505,25 +568,34 @@ function viewConnect( message ) {
 			return;
 		}
 		const code = r && r.error ? r.error.code : 'NETWORK';
-		err.textContent = code === 'NETWORK' || code === 'CLIENT_TIMEOUT' ? 'সাইটে পৌঁছানো যাচ্ছে না। ইন্টারনেট দেখুন।' : errorText( code, r.error.data );
+		err.textContent = code === 'NETWORK' || code === 'CLIENT_TIMEOUT' ? 'সাইটে পৌঁছানো যাচ্ছে না। ঠিকানা ও ইন্টারনেট দেখুন।' : errorText( code, r.error.data );
 		tokenInput.setAttribute( 'aria-invalid', 'true' );
 	};
-	tokenInput.addEventListener( 'keydown', ( e ) => {
-		if ( e.key === 'Enter' ) {
-			connect();
-		}
-	} );
+	for ( const input of [ tokenInput, siteInput ] ) {
+		input.addEventListener( 'keydown', ( e ) => {
+			if ( e.key === 'Enter' ) {
+				connect();
+			}
+		} );
+	}
 	return [
 		h( 'h2', { class: 'iaa-h2' }, 'সংযোগ করুন' ),
 		message ? alertBox( 'warning', 'triangle-alert', h( 'p', {}, message ) ) : null,
 		h( 'ol', { class: 'iaa-steps' },
-			h( 'li', {}, h( 'strong', {}, 'nabiad.com-এ লগইন করুন' ), h( 'span', {}, 'নিজের অ্যাকাউন্টে → wp-admin → Inbox AI Assist → Access tokens' ) ),
+			h( 'li', {}, h( 'strong', {}, 'নিজের WordPress সাইটে লগইন করুন' ), h( 'span', {}, 'wp-admin → Inbox AI Assist → Access tokens' ) ),
 			h( 'li', {}, h( 'strong', {}, '"Create token" চাপুন ও কপি করুন' ), h( 'span', {}, 'Token একবারই দেখানো হয়' ) ),
-			h( 'li', {}, h( 'strong', {}, 'নিচে পেস্ট করে সংযোগ করুন' ), h( 'span', {}, 'www থাকলে বা না থাকলেও নিজে থেকে ঠিক ঠিকানা খুঁজে নেবে' ) ) ),
+			h( 'li', {}, h( 'strong', {}, 'সাইটের ঠিকানা ও token দিয়ে সংযোগ করুন' ), h( 'span', {}, 'www থাকুক বা না থাকুক, ঠিক ঠিকানা নিজে খুঁজে নেবে' ) ) ),
+		h( 'div', { class: 'iaa-field' }, h( 'label', { class: 'iaa-label', for: 'iaa-site' }, 'ওয়েবসাইট' ), siteInput ),
 		h( 'div', { class: 'iaa-field' }, h( 'label', { class: 'iaa-label', for: 'iaa-token' }, 'Token' ), tokenInput, err ),
-		h( 'details', {}, h( 'summary', { class: 'iaa-muted' }, 'উন্নত (Advanced)' ), h( 'div', { class: 'iaa-stack' }, h( 'label', { class: 'iaa-label', for: 'iaa-site' }, 'সাইট' ), siteInput, h( 'label', { class: 'iaa-label', for: 'iaa-base' }, 'API base (শুধু টেস্টের জন্য)' ), baseInput ) ),
+		h( 'details', {}, h( 'summary', { class: 'iaa-muted' }, 'উন্নত (Advanced)' ), h( 'div', { class: 'iaa-stack' }, h( 'label', { class: 'iaa-label', for: 'iaa-base' }, 'API base (শুধু টেস্টের জন্য)' ), baseInput ) ),
 		btn( 'সংযোগ করুন', connect, 'primary', 'plug' ),
 	];
+}
+
+/** Audience line for a conversation not linked to a dealer (a regular customer). */
+function customerLine() {
+	const pub = !! ( S.me && S.me.settings && S.me.settings.public_prices );
+	return pub ? 'সাধারণ কাস্টমার — অনুমোদিত তথ্য ও website-এর দাম' : 'সাধারণ কাস্টমার — শুধু অনুমোদিত তথ্য (দাম দেওয়া বন্ধ)';
 }
 
 /* ---------------- Dealer chip + link dialog (S-09) */
@@ -534,7 +606,7 @@ function dealerChip() {
 	}
 	const linked = S.link && S.link.linked && S.link.dealer && S.link.dealer.active;
 	const chip = h( 'div', { class: `iaa-dealer${ linked ? '' : ' iaa-dealer--unverified' }` }, h( 'span', { class: 'iaa-dealer__dot', 'aria-hidden': 'true' } ),
-		h( 'span', { class: 'iaa-grow' }, linked ? `ডিলার: ${ S.link.dealer.code } · ${ S.link.dealer.name } · Tier ${ S.link.dealer.tier }` : 'যাচাই হয়নি — শুধু সাধারণ তথ্য (ডিলার লিংক নেই)' ),
+		h( 'span', { class: 'iaa-grow' }, linked ? `ডিলার: ${ S.link.dealer.code } · ${ S.link.dealer.name } · Tier ${ S.link.dealer.tier }` : customerLine() ),
 		can( 'link_dealer' ) ? btn( linked ? 'বদলান' : 'ডিলার লিংক', () => openLinkDialog( c ), 'ghost', 'link-2', { sm: true } ) : null );
 	return h( 'div', { class: 'iaa-panel' }, chip );
 }
@@ -637,12 +709,15 @@ function viewReady() {
 		out.push( h( 'div', { class: 'iaa-empty' }, icon( 'info', 32 ), h( 'p', {}, 'Meta Business Suite Inbox খুলুন।' ), btn( 'Inbox খুলুন', () => chrome.tabs.update( S.tab.id, { url: 'https://business.facebook.com/latest/inbox/all' } ), 'secondary' ), h( 'p', { class: 'iaa-help' }, 'অথবা নিচে পেস্ট করে সাজেশন নিন।' ) ) );
 	} else {
 		out.push( dealerChip() );
-		out.push( h( 'ol', { class: 'iaa-steps' },
+		const steps = h( 'ol', { class: 'iaa-steps' },
 			S.live
 				? h( 'li', {}, h( 'strong', {}, 'কথোপকথন খুলুন' ), h( 'span', {}, '"কথোপকথন থেকে সাজেশন" চাপুন, অথবা মেসেজ select করে "নির্বাচিত লেখা থেকে"' ) )
 				: h( 'li', {}, h( 'strong', {}, 'কাস্টমারের মেসেজ select করুন' ), h( 'span', {}, 'মাউস দিয়ে মেসেজের লেখাটি টেনে নির্বাচন করুন' ) ),
 			h( 'li', {}, h( 'strong', {}, S.live ? 'একটি সাজেশন বেছে নিন' : '"নির্বাচিত লেখা থেকে সাজেশন" চাপুন' ), h( 'span', {}, S.live ? 'দরকার হলে এডিট করুন' : 'বা Alt+Shift+D — ৩টি যাচাইকৃত সাজেশন আসবে' ) ),
-			h( 'li', {}, h( 'strong', {}, S.live ? 'বসান, দেখে নিজে Send করুন' : 'বেছে নিন → কপি → Meta-তে পেস্ট করে নিজে Send' ), h( 'span', {}, 'এক্সটেনশন কখনো নিজে মেসেজ পাঠায় না' ) ) ) );
+			h( 'li', {}, h( 'strong', {}, S.live ? 'বসান, দেখে নিজে Send করুন' : 'বেছে নিন → কপি → Meta-তে পেস্ট করে নিজে Send' ), h( 'span', {}, 'এক্সটেনশন কখনো নিজে মেসেজ পাঠায় না' ) ) );
+		// New users see the steps; after the first suggestion they fold into "কীভাবে ব্যবহার করবেন".
+		out.push( S.onboarded ? h( 'details', { class: 'iaa-howto' }, h( 'summary', { class: 'iaa-muted' }, 'কীভাবে ব্যবহার করবেন' ), steps ) : steps );
+		out.push( noteField() );
 		if ( S.live ) {
 			out.push( btn( 'কথোপকথন থেকে সাজেশন', fromConversation, 'primary', 'sparkles' ) );
 			out.push( btn( 'নির্বাচিত লেখা থেকে', fromSelection, 'secondary', 'text-select' ) );
@@ -650,7 +725,9 @@ function viewReady() {
 			out.push( btn( 'নির্বাচিত লেখা থেকে সাজেশন', fromSelection, 'primary', 'sparkles' ) );
 		}
 	}
-	out.push( noteField() );
+	if ( ! onInbox ) {
+		out.push( noteField() );
+	}
 	out.push( h( 'details', { open: ! onInbox || S.pasteOpen ? true : null, ontoggle: ( e ) => { S.pasteOpen = e.target.open; } },
 		h( 'summary', { class: 'iaa-label' }, 'পেস্ট করে সাজেশন' ),
 		h( 'div', { class: 'iaa-stack' }, pasteArea, btn( 'পেস্ট করা লেখা থেকে সাজেশন', () => fromPaste( pasteArea.value ), onInbox ? 'secondary' : 'primary', 'clipboard-paste' ),
@@ -711,7 +788,7 @@ function viewSuggestions() {
 	const ids = d.suggestions.map( ( x ) => x.variant_id );
 	const out = [];
 	out.push( h( 'div', { class: `iaa-dealer${ d.audience === 'dealer' ? '' : ' iaa-dealer--unverified' }` }, h( 'span', { class: 'iaa-dealer__dot', 'aria-hidden': 'true' } ),
-		h( 'span', {}, d.audience === 'dealer' && d.dealer ? `ডিলার: ${ d.dealer.code } · ${ d.dealer.name } · Tier ${ d.dealer.tier } (ডিলার-দাম ব্যবহার করা যাবে)` : 'যাচাই হয়নি — শুধু সাধারণ তথ্য, ডিলার-দাম দেওয়া হয়নি' ) ) );
+		h( 'span', {}, d.audience === 'dealer' && d.dealer ? `ডিলার: ${ d.dealer.code } · ${ d.dealer.name } · Tier ${ d.dealer.tier } (ডিলার-দাম ব্যবহার করা যাবে)` : customerLine() ) ) );
 	if ( S.stale ) {
 		out.push( alertBox( 'warning', 'triangle-alert', h( 'p', {}, 'কথোপকথন বদলেছে — এই সাজেশন আগের কথোপকথনের। বসানো বন্ধ, কপি করা যাবে।' ) ) );
 	}
@@ -940,6 +1017,11 @@ function viewQuick() {
 }
 
 /* ---------------- S-12 Diagnostics */
+/** Key/value row pair for a <dl> (diagnostics). */
+function kv( k, v ) {
+	return [ h( 'dt', {}, k ), h( 'dd', {}, v ) ];
+}
+
 function viewDiag() {
 	const wrap = h( 'div', { class: 'iaa-stack' }, h( 'p', { class: 'iaa-muted' }, 'লোড হচ্ছে…' ) );
 	( async () => {
@@ -971,16 +1053,19 @@ function viewDiag() {
 			shortcut: cmd ? cmd.shortcut || '(বসানো নেই)' : null,
 			recent: d.diag,
 		};
-		wrap.replaceChildren(
+		wrap.replaceChildren( ...[
 			h( 'h2', { class: 'iaa-h2' }, 'সেটিংস ও ডায়াগনস্টিক' ),
-			h( 'p', {}, `Extension ${ d.version } · ${ d.site }` ),
-			S.me ? h( 'p', {}, `ব্যবহারকারী: ${ S.me.user.name } · সার্ভার ${ S.me.version }` ) : null,
-			h( 'p', {}, `স্বয়ংক্রিয় পড়া/বসানো: ${ S.live ? 'চালু (অ্যাডমিন)' : 'বন্ধ — select/পেস্ট ও কপি' }` ),
-			h( 'p', {}, `শর্টকাট: ${ cmd && cmd.shortcut ? cmd.shortcut : 'বসানো নেই — chrome://extensions/shortcuts থেকে সেট করুন' }` ),
-			self ? h( 'p', {}, `Self-test: কথোপকথন ${ self.key ? '✔' : '✖' } · মেসেজ ${ self.messages ? '✔' : '✖' } · রিপ্লাই বক্স ${ self.composer ? '✔' : '✖' }` ) : null,
+			h( 'dl', { class: 'iaa-panel iaa-kv' },
+				...kv( 'সাইট', d.site || '—' ),
+				...kv( 'ভার্সন', `এক্সটেনশন ${ d.version }${ S.me ? ` · সার্ভার ${ S.me.version }` : '' }` ),
+				...( S.me ? kv( 'ব্যবহারকারী', S.me.user.name ) : [] ),
+				...kv( 'স্বয়ংক্রিয় পড়া/বসানো', S.live ? 'চালু (অ্যাডমিন)' : 'বন্ধ — select/পেস্ট ও কপি' ),
+				...kv( 'শর্টকাট', cmd && cmd.shortcut ? cmd.shortcut : 'বসানো নেই — chrome://extensions/shortcuts থেকে সেট করুন' ),
+				...( self ? kv( 'Self-test', `কথোপকথন ${ self.key ? '✔' : '✖' } · মেসেজ ${ self.messages ? '✔' : '✖' } · রিপ্লাই বক্স ${ self.composer ? '✔' : '✖' }` ) : [] ) ),
 			h( 'div', { class: 'iaa-field' }, h( 'label', { class: 'iaa-label', for: 'iaa-theme' }, 'থিম' ), themeSel ),
 			h( 'h3', { class: 'iaa-label' }, 'সাম্প্রতিক অনুরোধ' ),
-			h( 'ul', {}, ( d.diag || [] ).map( ( x ) => h( 'li', { class: 'iaa-mono' }, `${ x.at.slice( 11, 19 ) } ${ x.kind } ${ x.code } ${ x.request_id ? x.request_id.slice( 0, 8 ) : '' }` ) ) ),
+			( d.diag || [] ).length ? null : h( 'p', { class: 'iaa-help' }, 'এখনো কোনো অনুরোধ নেই।' ),
+			h( 'ul', { class: 'iaa-log' }, ( d.diag || [] ).map( ( x ) => h( 'li', { class: 'iaa-mono' }, `${ x.at.slice( 11, 19 ) } ${ x.kind } ${ x.code } ${ x.request_id ? x.request_id.slice( 0, 8 ) : '' }` ) ) ),
 			h( 'div', { class: 'iaa-row' },
 				btn( 'ডায়াগনস্টিক কপি', async () => {
 					if ( await copyText( JSON.stringify( report, null, 2 ) ) ) {
@@ -992,8 +1077,8 @@ function viewDiag() {
 					S.me = null;
 					go( 'connect' );
 				}, 'danger', 'power', { sm: true } ) : null ),
-			btn( 'ফিরে যান', () => go( S.me ? ( S.draft ? 'suggestions' : 'ready' ) : 'connect' ), 'ghost' )
-		);
+			btn( 'ফিরে যান', () => go( S.me ? ( S.draft ? 'suggestions' : 'ready' ) : 'connect' ), 'ghost' ),
+		].filter( Boolean ) );
 	} )();
 	return [ wrap ];
 }

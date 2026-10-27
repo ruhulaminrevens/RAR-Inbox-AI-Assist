@@ -35,6 +35,7 @@ class MiscController {
 					'reply_digits'          => Settings::get( 'reply_digits' ),
 					'suggestion_count'      => (int) Settings::get( 'suggestion_count' ),
 					'live_inbox'            => (bool) Settings::get( 'live_inbox' ),
+					'public_prices'         => (bool) Settings::get( 'allow_public_mrp' ),
 				),
 				'server_time' => gmdate( 'c' ),
 				'min_client'  => RAR_IAA_MIN_CLIENT,

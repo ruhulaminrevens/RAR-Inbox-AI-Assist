@@ -51,6 +51,19 @@ async function a11y( frame, view ) {
 		.map( ( x ) => `${ x.id } (${ x.nodes.length }): ${ x.nodes.slice( 0, 2 ).map( ( n ) => n.target.join( ' ' ) ).join( ', ' ) }` ) );
 	a11yViews.push( view );
 	v.forEach( ( x ) => a11yIssues.push( `${ view }: ${ x }` ) );
+	await panelShot( view );
+}
+
+/** IAA_E2E_SHOTS=<dir>: save a picture of the panel at every checked view (for visual review). */
+let currentPage = null;
+async function panelShot( view ) {
+	if ( ! process.env.IAA_E2E_SHOTS || ! currentPage ) {
+		return;
+	}
+	const el = await currentPage.$( '#panel' );
+	if ( el ) {
+		await el.screenshot( { path: join( process.env.IAA_E2E_SHOTS, `panel-${ view.replace( /[^A-Za-z0-9]+/g, '-' ) }.png` ) } );
+	}
 }
 
 const php = ( file, ...args ) => JSON.parse( execFileSync( 'php', [ join( here, file ), ...args ], { env: { ...process.env, WP_LOAD }, encoding: 'utf8' } ).trim().split( '\n' ).pop() );
@@ -82,6 +95,7 @@ const browser = await puppeteer.launch( {
 
 async function open( inboxQuery ) {
 	const page = await browser.newPage();
+	currentPage = page;
 	page.on( 'pageerror', ( e ) => errors.push( String( e ) ) );
 	page.on( 'console', ( m ) => {
 		if ( m.type() === 'error' ) {
@@ -120,6 +134,10 @@ try {
 
 	await step( 'wrong token format is rejected locally', async () => {
 		await panel.waitForSelector( '#iaa-token' );
+		await clickText( panel, 'সংযোগ' );
+		await waitText( panel, 'ওয়েবসাইটের ঠিকানা দিন' );
+		assert.equal( await panel.$eval( '#iaa-site', ( e ) => e.getAttribute( 'aria-invalid' ) ), 'true', 'site is required (no built-in site)' );
+		await panel.type( '#iaa-site', 'shop.example.com' );
 		await panel.type( '#iaa-token', 'not-a-token' );
 		await clickText( panel, 'সংযোগ' );
 		await waitText( panel, 'Token ঠিক নেই' );
@@ -150,7 +168,7 @@ try {
 		await panel.waitForSelector( '[data-variant="short"]', { timeout: 30000 } );
 		const ids = await panel.$$eval( '[role=radio]', ( els ) => els.map( ( e ) => e.dataset.variant ) );
 		assert.deepEqual( ids, [ 'professional', 'friendly', 'short' ] );
-		assert.ok( await hasText( panel, 'যাচাই হয়নি' ), 'unverified chip' );
+		assert.ok( await hasText( panel, 'সাধারণ কাস্টমার' ), 'unverified chip' );
 		assert.ok( await hasText( panel, '৯টা' ), 'approved hours fact used' );
 		assert.ok( await hasText( panel, 'AI: Anthropic' ), 'panel shows which AI answered' );
 		if ( process.env.IAA_E2E_SHOTS ) {
@@ -264,7 +282,7 @@ try {
 		await panel.waitForSelector( '[data-variant="short"]', { timeout: 30000 } );
 		const text = await panel.$eval( '[data-variant="professional"] .iaa-card__text', ( e ) => e.textContent );
 		assert.ok( ! /1,250|১,২৫০|1250/.test( text ), 'no dealer price when unlinked: ' + text );
-		assert.ok( await hasText( panel, 'যাচাই হয়নি' ) );
+		assert.ok( await hasText( panel, 'সাধারণ কাস্টমার' ) );
 		await panel.$eval( '#iaa-actionbar button[aria-label="আরও"]', ( e ) => e.click() );
 		await panel.evaluate( () => [ ...document.querySelectorAll( '.iaa-menu__item' ) ].find( ( e ) => e.textContent === 'নতুন মেসেজ' ).click() );
 	} );
@@ -276,7 +294,7 @@ try {
 		await clickText( panel, 'কথোপকথন থেকে সাজেশন' );
 		await panel.waitForSelector( '[data-variant="short"]', { timeout: 30000 } );
 		assert.equal( await panel.$eval( '[data-variant="professional"] .iaa-card__text', ( e ) => e.getAttribute( 'lang' ) ), 'bn', '"Price koto?" answered in Bangla' );
-		assert.equal( await hasText( panel, 'ডিলার যাচাই ছাড়া দাম' ), false, 'no manager badge for an unknown product' );
+		assert.equal( await hasText( panel, 'দাম নিশ্চিত করে জানাতে হবে' ), false, 'no manager badge for an unknown product' );
 		await panel.$eval( '#iaa-actionbar button[aria-label="আরও"]', ( e ) => e.click() );
 		await panel.evaluate( () => [ ...document.querySelectorAll( '.iaa-menu__item' ) ].find( ( e ) => e.textContent === 'নতুন মেসেজ' ).click() );
 		await panel.waitForSelector( '#iaa-note' );
@@ -286,7 +304,7 @@ try {
 		await panel.waitForSelector( '[data-variant="short"]', { timeout: 30000 } );
 		const text = await panel.$eval( '[data-variant="professional"] .iaa-card__text', ( e ) => e.textContent );
 		assert.ok( ! /1,250|১,২৫০|1250/.test( text ), 'still no dealer price when unlinked: ' + text );
-		assert.ok( await hasText( panel, 'ডিলার যাচাই ছাড়া দাম' ), 'recognised product without public price → manager badge' );
+		assert.ok( await hasText( panel, 'দাম নিশ্চিত করে জানাতে হবে' ), 'recognised product without public price → manager badge' );
 		await panel.$eval( '#iaa-actionbar button[aria-label="আরও"]', ( e ) => e.click() );
 		await panel.evaluate( () => [ ...document.querySelectorAll( '.iaa-menu__item' ) ].find( ( e ) => e.textContent === 'নতুন মেসেজ' ).click() );
 		assert.equal( await panel.$eval( '#iaa-note', ( e ) => e.value ), '', '"নতুন মেসেজ" clears the note' );
@@ -331,6 +349,9 @@ try {
 		await waitText( panel, 'স্বয়ংক্রিয় পড়া/বসানো' );
 		assert.ok( await hasText( panel, 'Alt+Shift+D' ) );
 		assert.equal( await hasText( panel, 'dam koto' ), false );
+		const manifest = JSON.parse( readFileSync( join( process.env.IAA_E2E_EXT_DIR || join( repo, 'extension' ), 'manifest.json' ), 'utf8' ) );
+		assert.ok( await hasText( panel, `এক্সটেনশন ${ manifest.version }` ), 'diagnostics show the real extension version' );
+		assert.equal( await panel.evaluate( () => /\b(null|undefined|NaN)\b/.test( document.getElementById( 'iaa-app' ).textContent ) ), false, 'no null text in diagnostics' );
 		await a11y( panel, 'S-12 diagnostics' );
 	} );
 	await page.close();
@@ -378,6 +399,9 @@ try {
 				.filter( ( x ) => x.impact === 'serious' || x.impact === 'critical' )
 				.map( ( x ) => `${ x.id } (${ x.nodes.length }): ${ x.nodes.slice( 0, 2 ).map( ( n ) => n.target.join( ' ' ) ).join( ', ' ) }` ) );
 			a11yViews.push( 'admin ' + slug );
+			if ( process.env.IAA_E2E_SHOTS ) {
+				await admin.screenshot( { path: join( process.env.IAA_E2E_SHOTS, `admin-${ slug.replace( /[^A-Za-z0-9]+/g, '-' ) }.png` ), fullPage: true } );
+			}
 			v.forEach( ( x ) => a11yIssues.push( `admin ${ slug }: ${ x }` ) );
 		}
 		// Plugins screen: "Dashboard | Settings" next to Deactivate.

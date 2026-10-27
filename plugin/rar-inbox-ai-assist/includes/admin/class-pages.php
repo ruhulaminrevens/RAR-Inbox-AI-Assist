@@ -120,7 +120,15 @@ class Pages {
 			static function () {
 				echo '<table class="widefat iaa-health"><thead><tr><th scope="col">Check</th><th scope="col">Status</th><th scope="col">Details</th><th scope="col"><span class="screen-reader-text">Action</span></th></tr></thead><tbody>';
 				foreach ( self::health() as $row ) {
-					echo '<tr><td>' . esc_html( $row[0] ) . '</td><td>' . ( $row[1] ? '<span class="iaa-ok"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> OK</span>' : '<span class="iaa-bad"><span class="dashicons dashicons-warning" aria-hidden="true"></span> Needs attention</span>' ) . '</td><td>' . esc_html( $row[2] ) . '</td><td>' . ( ! $row[1] && ! empty( $row[3] ) ? Ui::button_link( $row[3], 'Fix', 'button button-small' ) : '' ) . '</td></tr>'; // phpcs:ignore
+					// $row[1]: true = OK, false = needs attention, 'info' = nothing to fix (for example waiting for the first scheduled run).
+					if ( 'info' === $row[1] ) {
+						$status = '<span class="iaa-info"><span class="dashicons dashicons-info-outline" aria-hidden="true"></span> Info</span>';
+					} elseif ( $row[1] ) {
+						$status = '<span class="iaa-ok"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> OK</span>';
+					} else {
+						$status = '<span class="iaa-bad"><span class="dashicons dashicons-warning" aria-hidden="true"></span> Needs attention</span>';
+					}
+					echo '<tr><td>' . esc_html( $row[0] ) . '</td><td>' . $status . '</td><td>' . esc_html( $row[2] ) . '</td><td>' . ( false === $row[1] && ! empty( $row[3] ) ? Ui::button_link( $row[3], 'Fix', 'button button-small' ) : '' ) . '</td></tr>'; // phpcs:ignore -- $status is static markup; the rest is escaped.
 				}
 				echo '</tbody></table>';
 			}
@@ -168,12 +176,28 @@ class Pages {
 			array( 'HTTPS', is_ssl() || 0 === strpos( home_url(), 'https://' ), home_url(), '' ),
 			array( 'PHP / WordPress', version_compare( PHP_VERSION, '7.4', '>=' ), 'PHP ' . PHP_VERSION . ' · WordPress ' . $wp_version . ( Db::is_sqlite() ? ' · SQLite (development)' : '' ), '' ),
 			array( 'WooCommerce link', ! WcCatalogue::available() || ( $state && empty( $state['error'] ) ), WcCatalogue::available() ? ( $state ? ( empty( $state['error'] ) ? 'Last sync ' . Db::display( $state['at'] ) . ', ' . (int) $state['products'] . ' products' : $state['error'] ) : 'Not synced yet' ) : 'WooCommerce not active — CSV price lists only', Ui::url( 'rar-iaa-prices' ) ),
-			array( 'Daily maintenance', is_array( $maint ), is_array( $maint ) ? 'Last run ' . Db::display( $maint['at'] ) : 'Waiting for the first WP-Cron run (within 24 hours of activation)', '' ),
-			array( 'AI concurrency', 1 === Settings::max_concurrent(), Settings::max_concurrent() . ' simultaneous call(s). Keep 1 until the hosting load test (T0.08) passes.', Ui::url( 'rar-iaa-settings', array( 'tab' => 'limits' ) ) ),
-			array( 'Live inbox read/insert', ! Settings::get( 'live_inbox' ), Settings::get( 'live_inbox' ) ? 'ON — make sure Meta permission evidence (T0.09) is recorded' : 'OFF — staff select or paste text and use Copy', Ui::url( 'rar-iaa-settings', array( 'tab' => 'access' ) ) ),
+			self::maintenance_row( $maint ),
+			array( 'AI concurrency', 1 === Settings::max_concurrent() ? true : 'info', Settings::max_concurrent() . ' simultaneous AI call(s). 1 is safest on shared hosting; raise it only after a load test on your server.', Ui::url( 'rar-iaa-settings', array( 'tab' => 'limits' ) ) ),
+			array( 'Live inbox read/insert', 'info', Settings::get( 'live_inbox' ) ? 'ON — the extension reads the open conversation and fills the reply box only when staff click; it never sends.' : 'OFF — staff select or paste the customer text and use Copy.', '' ),
 			array( 'LiteSpeed Cache', true, $lsc ? 'Active: add /wp-json/rar-iaa/ to "Do Not Cache URIs" (the plugin also sends no-store headers)' : 'Not detected', '' ),
 		);
 		return $rows;
+	}
+
+	/** Daily maintenance: OK after a run; Info while the first run is still scheduled; attention when overdue or not scheduled. */
+	private static function maintenance_row( $maint ) {
+		if ( is_array( $maint ) ) {
+			$late = isset( $maint['at'] ) && strtotime( $maint['at'] . ' UTC' ) < time() - 2 * DAY_IN_SECONDS;
+			return array( 'Daily maintenance', ! $late, ( $late ? 'Overdue — last run ' : 'Last run ' ) . Db::display( $maint['at'] ) . ( $late ? '. WP-Cron may be disabled: add a server cron job for wp-cron.php.' : '' ), '' );
+		}
+		$next = wp_next_scheduled( 'rar_iaa_daily_maintenance' );
+		if ( ! $next ) {
+			return array( 'Daily maintenance', false, 'Not scheduled — deactivate and activate the plugin once.', '' );
+		}
+		if ( $next < time() - HOUR_IN_SECONDS ) {
+			return array( 'Daily maintenance', false, 'Overdue since ' . Db::display( gmdate( 'Y-m-d H:i:s', $next ) ) . '. WP-Cron may be disabled: add a server cron job for wp-cron.php.', '' );
+		}
+		return array( 'Daily maintenance', 'info', 'First run scheduled for ' . Db::display( gmdate( 'Y-m-d H:i:s', $next ) ) . '.', '' );
 	}
 
 	/* ================================================================== A-02 Knowledge base */
@@ -243,7 +267,7 @@ class Pages {
 			Ui::form_open( 'rar_iaa_kb_save' );
 			echo '<input type="hidden" name="id" value="' . esc_attr( $id ) . '"><input type="hidden" name="row_version" value="' . esc_attr( $entry ? $entry->row_version : 0 ) . '">';
 			echo '<table class="form-table" role="presentation"><tbody>';
-			echo '<tr><th><label for="iaa-f-title">Title *</label></th><td><input class="regular-text" id="iaa-f-title" name="title" maxlength="120" required value="' . esc_attr( $val( 'title' ) ) . '">';
+			echo '<tr><th><label for="iaa-f-title">Title *</label></th><td><input type="text" class="regular-text" id="iaa-f-title" name="title" maxlength="120" required value="' . esc_attr( $val( 'title' ) ) . '">';
 			Ui::field_error( 'title' );
 			echo '</td></tr><tr><th><label for="iaa-f-category">Category *</label></th><td><select id="iaa-f-category" name="category">';
 			foreach ( KbRepository::category_labels() as $c => $l ) {
@@ -251,7 +275,7 @@ class Pages {
 			}
 			echo '</select>';
 			Ui::field_error( 'category' );
-			echo '</td></tr><tr><th><label for="iaa-f-keywords">Keywords</label></th><td><input class="large-text" id="iaa-f-keywords" name="keywords" value="' . esc_attr( str_replace( ',', ', ', $val( 'keywords' ) ) ) . '"><p class="description">Comma-separated words customers use (Bangla, Banglish, English), e.g. <code>khola, koyta, সময়, office hours</code>.</p>';
+			echo '</td></tr><tr><th><label for="iaa-f-keywords">Keywords</label></th><td><input type="text" class="large-text" id="iaa-f-keywords" name="keywords" value="' . esc_attr( str_replace( ',', ', ', $val( 'keywords' ) ) ) . '"><p class="description">Comma-separated words customers use (Bangla, Banglish, English), e.g. <code>khola, koyta, সময়, office hours</code>.</p>';
 			Ui::field_error( 'keywords' );
 			echo '</td></tr><tr><th><label for="iaa-f-answer_bn">Answer (Bangla) *</label></th><td><textarea class="large-text" rows="4" id="iaa-f-answer_bn" name="answer_bn" maxlength="2000" lang="bn" required>' . esc_textarea( $val( 'answer_bn' ) ) . '</textarea><p class="description">Write the exact facts (times, numbers, prices) the AI may use. The AI will not use anything that is not here.</p>';
 			Ui::field_error( 'answer_bn' );
@@ -307,7 +331,7 @@ class Pages {
 			foreach ( $tiers as $t ) {
 				echo '<tr><td><strong>' . esc_html( $t->code ) . '</strong>' . ( (int) $t->is_public ? ' ' . Ui::badge( 'free', 'public' ) : '' ) . '</td><td>'; // phpcs:ignore
 				Ui::form_open( 'rar_iaa_tier_save', false, 'iaa-inline-form' );
-				echo '<input type="hidden" name="id" value="' . esc_attr( $t->id ) . '"><input type="hidden" name="row_version" value="' . esc_attr( $t->row_version ) . '"><input name="code" value="' . esc_attr( $t->code ) . '" size="8" aria-label="Code for tier ' . esc_attr( $t->code ) . '"> <input name="name" value="' . esc_attr( $t->name ) . '" aria-label="Name for tier ' . esc_attr( $t->code ) . '"> <select name="status" aria-label="Status for tier ' . esc_attr( $t->code ) . '"><option value="active"' . selected( $t->status, 'active', false ) . '>active</option><option value="inactive"' . selected( $t->status, 'inactive', false ) . '>inactive</option></select> <button class="button">Save</button></form></td>';
+				echo '<input type="hidden" name="id" value="' . esc_attr( $t->id ) . '"><input type="hidden" name="row_version" value="' . esc_attr( $t->row_version ) . '"><input type="text" name="code" value="' . esc_attr( $t->code ) . '" size="8" aria-label="Code for tier ' . esc_attr( $t->code ) . '"> <input type="text" name="name" value="' . esc_attr( $t->name ) . '" aria-label="Name for tier ' . esc_attr( $t->code ) . '"> <select name="status" aria-label="Status for tier ' . esc_attr( $t->code ) . '"><option value="active"' . selected( $t->status, 'active', false ) . '>active</option><option value="inactive"' . selected( $t->status, 'inactive', false ) . '>inactive</option></select> <button class="button">Save</button></form></td>';
 				echo '<td>' . esc_html( self::rule_text( $t ) ) . '</td><td>' . esc_html( isset( $counts[ (int) $t->id ] ) ? $counts[ (int) $t->id ] : 0 ) . '</td></tr>';
 			}
 			if ( ! $tiers ) {
@@ -318,7 +342,7 @@ class Pages {
 				'Add tier',
 				static function () {
 					Ui::form_open( 'rar_iaa_tier_save', false, 'iaa-inline-form' );
-					echo '<label for="iaa-f-code" class="screen-reader-text">Code</label><input name="code" placeholder="Code e.g. A" size="8" required value="' . esc_attr( Notice::old( 'code' ) ) . '" id="iaa-f-code"> <label for="iaa-f-name" class="screen-reader-text">Name</label><input name="name" placeholder="Name e.g. Distributor" required value="' . esc_attr( Notice::old( 'name' ) ) . '" id="iaa-f-name"> <button class="button button-primary">Add tier</button></form>';
+					echo '<label for="iaa-f-code" class="screen-reader-text">Code</label><input type="text" name="code" placeholder="Code e.g. A" size="8" required value="' . esc_attr( Notice::old( 'code' ) ) . '" id="iaa-f-code"> <label for="iaa-f-name" class="screen-reader-text">Name</label><input type="text" name="name" placeholder="Name e.g. Distributor" required value="' . esc_attr( Notice::old( 'name' ) ) . '" id="iaa-f-name"> <button class="button button-primary">Add tier</button></form>';
 					Ui::field_error( 'code' );
 					Ui::field_error( 'name' );
 				}
@@ -338,9 +362,9 @@ class Pages {
 			echo '<div class="iaa-panel"><div class="iaa-panel__head"><h2>' . ( $d ? 'Edit dealer' : 'Add dealer' ) . '</h2></div><div class="iaa-panel__body">';
 			Ui::form_open( 'rar_iaa_dealer_save' );
 			echo '<input type="hidden" name="id" value="' . esc_attr( $d ? $d->id : 0 ) . '"><input type="hidden" name="row_version" value="' . esc_attr( $d ? $d->row_version : 0 ) . '"><table class="form-table" role="presentation"><tbody>';
-			echo '<tr><th><label for="iaa-f-dealer_code">Dealer code *</label></th><td><input id="iaa-f-dealer_code" name="dealer_code" required value="' . esc_attr( $val( 'dealer_code' ) ) . '">';
+			echo '<tr><th><label for="iaa-f-dealer_code">Dealer code *</label></th><td><input type="text" id="iaa-f-dealer_code" name="dealer_code" required value="' . esc_attr( $val( 'dealer_code' ) ) . '">';
 			Ui::field_error( 'dealer_code' );
-			echo '</td></tr><tr><th><label for="iaa-f-name">Name *</label></th><td><input class="regular-text" id="iaa-f-name" name="name" required value="' . esc_attr( $val( 'name' ) ) . '">';
+			echo '</td></tr><tr><th><label for="iaa-f-name">Name *</label></th><td><input type="text" class="regular-text" id="iaa-f-name" name="name" required value="' . esc_attr( $val( 'name' ) ) . '">';
 			Ui::field_error( 'name' );
 			echo '</td></tr><tr><th><label for="iaa-f-tier_id">Tier *</label></th><td><select id="iaa-f-tier_id" name="tier_id"><option value="">—</option>';
 			foreach ( $tiers as $t ) {
@@ -353,7 +377,7 @@ class Pages {
 				echo ' ' . Ui::button_link( Ui::url( 'rar-iaa-dealers', array( 'tab' => 'tiers' ) ), 'Create a tier first', 'button-link' ); // phpcs:ignore
 			}
 			Ui::field_error( 'tier_id' );
-			echo '</td></tr><tr><th><label for="iaa-f-district_code">District code</label></th><td><input id="iaa-f-district_code" name="district_code" placeholder="BD-13" value="' . esc_attr( $val( 'district_code' ) ) . '">';
+			echo '</td></tr><tr><th><label for="iaa-f-district_code">District code</label></th><td><input type="text" id="iaa-f-district_code" name="district_code" placeholder="BD-13" value="' . esc_attr( $val( 'district_code' ) ) . '">';
 			Ui::field_error( 'district_code' );
 			echo '</td></tr><tr><th><label for="iaa-f-status">Status</label></th><td><select id="iaa-f-status" name="status"><option value="active"' . selected( $val( 'status', 'active' ), 'active', false ) . '>active</option><option value="inactive"' . selected( $val( 'status' ), 'inactive', false ) . '>inactive</option></select><p class="description">An inactive dealer is treated as unverified: no dealer prices.</p></td></tr>';
 			echo '<tr><th><label for="iaa-f-note">Internal note</label></th><td><textarea id="iaa-f-note" name="note" class="large-text" rows="2" maxlength="500">' . esc_textarea( $val( 'note' ) ) . '</textarea><p class="description">Never sent to the AI. Do not store phone numbers or addresses here.</p></td></tr>';
@@ -430,14 +454,14 @@ class Pages {
 			static function () {
 				echo '<form method="post" action="' . esc_url( Ui::url( 'rar-iaa-tokens' ) ) . '" class="iaa-inline-form">';
 				wp_nonce_field( 'rar_iaa_token_create' );
-				echo '<input type="hidden" name="iaa_create_token" value="1"><label>Label <input name="label" maxlength="60" required placeholder="Office PC 2"></label> <label>Expires in <select name="days"><option value="30">30 days</option><option value="90">90 days</option><option value="180" selected>180 days</option></select></label> <button class="button button-primary">Create token</button></form>';
+				echo '<input type="hidden" name="iaa_create_token" value="1"><label>Label <input type="text" name="label" maxlength="60" required placeholder="Office PC 2"></label> <label>Expires in <select name="days"><option value="30">30 days</option><option value="90">90 days</option><option value="180" selected>180 days</option></select></label> <button class="button button-primary">Create token</button></form>';
 				echo '<p class="description">Each person needs their own WordPress account and token. Maximum 3 active tokens per person. Revoke a token immediately if a computer is lost.</p>';
 			}
 		);
 		Ui::panel(
 			'How to connect the extension',
 			static function () {
-				echo '<ol class="iaa-howto"><li>Chrome → <code>chrome://extensions</code> → Developer mode → <strong>Load unpacked</strong> → choose the unzipped extension folder.</li><li>Open Meta Business Suite inbox and click the Inbox AI Assist icon to open the side panel.</li><li>Paste the token and press <strong>সংযোগ করুন</strong>. If your site uses <code>www.</code>, the panel detects it automatically.</li></ol>';
+				echo '<ol class="iaa-howto"><li>Chrome → <code>chrome://extensions</code> → Developer mode → <strong>Load unpacked</strong> → choose the unzipped extension folder.</li><li>Open Meta Business Suite inbox and click the Inbox AI Assist icon to open the side panel.</li><li>Enter this site\'s address <code>' . esc_html( untrailingslashit( home_url() ) ) . '</code>, paste the token and press <strong>সংযোগ করুন</strong>. Chrome asks once to allow the extension on this site. <code>www.</code> or not, the panel finds the right address.</li></ol>';
 			}
 		);
 		echo '</div>';
