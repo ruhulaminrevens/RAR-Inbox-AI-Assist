@@ -13,7 +13,10 @@ defined( 'ABSPATH' ) || exit;
 
 class Language {
 
-	/** Common Banglish words; two hits mark a Latin-script message as Banglish. */
+	/** Messages with at most this many words are "short" for detect_recent(). */
+	const SHORT = 4;
+
+	/** Common Banglish words; two hits (or one in a very short message) mark a Latin-script message as Banglish. */
 	const BANGLISH = array( 'ami', 'amar', 'apni', 'apnar', 'apnader', 'apnara', 'ache', 'achhe', 'acche', 'ase', 'koto', 'koyta', 'kobe', 'kothay', 'dam', 'daam', 'din', 'diben', 'dibo', 'den', 'deben', 'chai', 'lagbe', 'hobe', 'hbe', 'ki', 'vai', 'bhai', 'bhaiya', 'vaiya', 'ajke', 'aj', 'kal', 'khola', 'bondho', 'porjonto', 'theke', 'jabe', 'pathan', 'pathaben', 'korte', 'korbo', 'kore', 'kivabe', 'kemne', 'na', 'ji', 'jii', 'thik', 'accha', 'acha', 'dhonnobad', 'onek', 'ekta', 'duita', 'tin', 'kom', 'beshi', 'shob', 'sob', 'nibo', 'nite', 'pabo', 'paowa', 'jay', 'jaabe', 'assalamu', 'alaikum', 'salam', 'vaia', 'apu', 'dada' );
 
 	/** Script of a text: bn, banglish or en. */
@@ -29,13 +32,37 @@ class Language {
 		if ( $b / ( $b + $l ) > 0.3 ) {
 			return 'bn';
 		}
-		$hits = 0;
-		foreach ( Util::tokens( $text ) as $tok ) {
+		$hits   = 0;
+		$tokens = Util::tokens( $text );
+		foreach ( $tokens as $tok ) {
 			if ( in_array( $tok, self::BANGLISH, true ) ) {
 				$hits++;
 			}
 		}
-		return $hits >= 2 ? 'banglish' : 'en';
+		// "Price koto?" — one Banglish word in a two-word message is enough.
+		return ( $hits >= 2 || ( $hits >= 1 && $hits * 3 >= count( $tokens ) ) ) ? 'banglish' : 'en';
+	}
+
+	/**
+	 * Language of the latest customer messages (oldest first). A short English-looking last message
+	 * ("Price?", "Hello", "ok") follows the language of the customer's previous two messages.
+	 */
+	public static function detect_recent( array $customer_texts ) {
+		$texts = array_values( array_filter( array_map( 'strval', $customer_texts ), 'strlen' ) );
+		if ( ! $texts ) {
+			return 'bn';
+		}
+		$last = self::detect( end( $texts ) );
+		if ( 'en' !== $last || count( Util::tokens( end( $texts ) ) ) > self::SHORT ) {
+			return $last;
+		}
+		foreach ( array_reverse( array_slice( array_slice( $texts, 0, -1 ), -2 ) ) as $t ) {
+			$d = self::detect( $t );
+			if ( 'en' !== $d ) {
+				return $d;
+			}
+		}
+		return $last;
 	}
 
 	/** Reply language for the model: bn or en (+ whether Latin-script Bangla is wanted). */

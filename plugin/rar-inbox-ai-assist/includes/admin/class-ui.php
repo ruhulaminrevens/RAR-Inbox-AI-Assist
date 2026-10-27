@@ -76,7 +76,8 @@ class Ui {
 				continue;
 			}
 			$label   = isset( Settings::PROVIDERS[ $p ] ) ? preg_replace( '/\s*\(.*\)$/', '', Settings::PROVIDERS[ $p ] ) : $p;
-			$names[] = array( $p, $label . ( Settings::is_free( $p ) ? ' (free)' : '' ) );
+			$ready   = ! is_wp_error( \RarIaa\Providers\ProviderFactory::make( $p ) );
+			$names[] = array( $p, $label . ( ! $ready ? ' (not set)' : ( Settings::is_free( $p ) ? ' (free)' : '' ) ) );
 		}
 		$text = 'AI: ' . implode( ' → ', array_column( $names, 1 ) );
 		return '<span class="iaa-pill" title="Primary → fallback AI provider">' . esc_html( $text ) . '</span>';

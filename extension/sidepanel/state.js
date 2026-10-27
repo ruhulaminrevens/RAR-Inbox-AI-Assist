@@ -189,3 +189,19 @@ export function aiNote( ai ) {
 	const name = String( ai.label ).replace( /\s*\(.*\)$/, '' );
 	return `AI: ${ name }${ ai.free ? ' (ফ্রি)' : '' }${ ai.fallback ? ' · ব্যাকআপ AI ব্যবহৃত' : '' }`;
 }
+
+/**
+ * Staff note for the next request (v0.2.1, FR-29): what the customer means, e.g. the product in a
+ * photo. Only kept for the conversation it was typed for; trimmed, single line, max 200 chars.
+ * Returns the text to send, or null.
+ */
+export function noteFor( note, convKey ) {
+	if ( ! note || typeof note.text !== 'string' ) {
+		return null;
+	}
+	if ( ( note.conv || null ) !== ( convKey || null ) ) {
+		return null;
+	}
+	const t = note.text.replace( /[\u0000-\u001F\u007F]+/g, ' ' ).replace( /\s+/g, ' ' ).trim().slice( 0, 200 );
+	return t || null;
+}

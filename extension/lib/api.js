@@ -4,7 +4,7 @@
  */
 
 export const DEFAULT_SITE = 'https://nabiad.com';
-export const VERSION = '0.2.0';
+export const VERSION = '0.2.1';
 const TIMEOUT_MS = 25000;
 export const TOKEN_RE = /^iaa_[a-z0-9]{8}_[A-Za-z0-9]{40}$/;
 

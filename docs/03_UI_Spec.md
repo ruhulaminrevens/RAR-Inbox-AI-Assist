@@ -226,3 +226,7 @@ Use `iaa-suggestion-card` in a vertical stack down to 320 px usable width, exist
 - **Settings tabs**: one form, panes shown by `admin.js` (no data lost on save); provider cards (primary/fallback highlighted, free-tier badge), warning-coloured free-tier consent box, sticky save bar.
 - **Panel**: numbered step lists (`.iaa-steps`) on connect and ready screens; meta line under suggestions with the AI used.
 - Accessibility: every control labelled (axe-core WCAG 2.1 A/AA: 0 serious/critical on 6 panel views and 12 admin views).
+
+## 13. v0.2.1 panel addition
+
+- **Staff note field** (S-03, FR-29): existing `.iaa-label` + `.iaa-input` (one line, `maxlength` 200, `lang="bn"`) + `.iaa-help` text linked by `aria-describedby`. Label "পণ্য / নোট (ঐচ্ছিক)", placeholder "যেমন: ছবির পণ্য — Jaguar Classic Red 100ml", help "কাস্টমার ছবি পাঠালে পণ্যের নাম লিখুন। নোট AI-কে বোঝাতে সাহায্য করে; দাম আসে শুধু অনুমোদিত তথ্য থেকে। নোট সেভ হয় না।" No new tokens or components.

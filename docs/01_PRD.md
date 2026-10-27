@@ -335,3 +335,15 @@ Requested by the owner after installing 0.1.0 on nabiad.com: WooCommerce already
 | FR-28 | **Professional admin UI.** Brand header, section navigation, setup checklist, cards, empty states with next steps, tabbed settings; "Dashboard \| Settings" links on the Plugins screen. Panel connect/ready screens show numbered steps and which AI answered. | P1 |
 | BR-11 | Public (unverified) contacts may be told only the **website price** (the WooCommerce price anyone sees on the shop) or a CSV MRP, and only when "Public prices" is on. Dealer prices still require a linked active dealer. | P0 |
 | BR-12 | Digits inside an approved product name (e.g. "100ml") and numbers directly followed by a measurement unit are quantities, never prices; any other number next to a price cue must still equal an approved price. | P0 |
+
+## 18. v0.2.1 additions (owner feedback after the first live use, 27 Oct 2026)
+
+Found by the owner on the live inbox: a customer sent a product photo with "এই প্রোডাক্ট টা available আছে?" then "Price koto?"; suggestions came back in English and every one carried a manager badge; the AI cannot see photos.
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-29 | **Staff note** (owner-approved 27 Oct 2026). The ready screen has an optional "পণ্য / নোট" field (≤ 200 characters, one line) for what the customer means, e.g. the product shown in a photo. It is sent with the next request for that conversation only, masked like conversation text, used to select facts and shown to the model as a staff note that is *not* a fact. It is never stored (tables, options, logs, transients). Prices still come only from facts and the guard is unchanged. "নতুন মেসেজ" or a different conversation clears it. | P1 |
+| FR-10a | **Language from recent messages** (refines FR-10). A short last customer message (≤ 4 words) that looks English ("Price?", "Hello", "ok") follows the language of the customer's previous two messages. A Latin message is Banglish when it has two Banglish words, or one when that is at least a third of its words ("Price koto?"). | P0 |
+| BR-13 | **Unknown product is not a handoff.** "Price asked but cannot be given" (`unknown_dealer_price`) applies only when a product was recognised. When none was recognised the suggestion asks which product and unit, and a model flag `unknown_dealer_price` is ignored for that draft; other handoff reasons are unchanged. | P0 |
+| BR-14 | Suggestions must not give example sizes or quantities ("1kg, 500ml") that are not in the facts. | P1 |
+| NFR-13 | **Provider time budget.** With a fallback configured the primary gets at most 12 s of the 20 s request budget, so the fallback is still tried; admin test results explain common provider errors (key rejected, model not found, limit reached, overloaded). | P1 |
