@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+wp-config.php
+*.log
+*.pem
+*.key
+node_modules/
+vendor/
+coverage/
+__pycache__/
+*.pyc
+playwright-report/
+test-results/
+*.zip
+.DS_Store
+Thumbs.db

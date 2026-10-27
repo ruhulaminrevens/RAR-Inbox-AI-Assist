@@ -1,0 +1,15 @@
+name: Documentation integrity
+on:
+  push:
+    paths: ['**/*.md', 'scripts/check_docs.py', '.github/workflows/docs.yml']
+  pull_request:
+    paths: ['**/*.md', 'scripts/check_docs.py', '.github/workflows/docs.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docs
+        run: python3 scripts/check_docs.py

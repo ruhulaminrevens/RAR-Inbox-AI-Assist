@@ -1,0 +1,7 @@
+# Cursor rules — RAR Inbox AI Assist v0.2
+
+Architecture only, not a working application. Read CLAUDE.md and six /docs architecture files before editing. Observe AUTH/G0/G1/G2/G3 and never claim tests passed without running them.
+
+3 uniquely labelled guarded suggestions by default (optional fourth): Professional/Friendly/Short/Sales-focused. Staff Select → Edit → Insert/Copy and manually Send. NEVER automate Send/Enter. Customer-supplied prices do not authorise company quotes. Unverified users get public facts only, even if one dealer tier exists.
+
+Never persist unmasked replies/chats/PII in transients, options, logs or caches. Keep provider keys server-side; token storage trusted contexts; IAA tokens limited to own REST namespace. Check Meta policies before DOM automation, retain selection/paste + Copy fallback. Protect storefront with one AI request concurrency until load tested, atomic cost reservation before provider calls. G2 pilot only; G3 general rollout.
