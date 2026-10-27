@@ -17,7 +17,7 @@
 </div>
 
 > [!IMPORTANT]
-> **v0.2.0 is a pre-pilot build, not approved for production.** Use a staging WordPress site first. Live Meta inbox capture/insertion is **disabled by default** and still requires platform-permission and real-inbox verification. Suggestions are never automatically sent.
+> **v0.2.0 is a pre-pilot build, not yet approved for production.** Use a staging WordPress site first. Live Meta inbox capture/insertion is **disabled by default** and still requires platform-permission and real-inbox verification. Suggestions are never automatically sent.
 
 ---
 
@@ -45,19 +45,20 @@ Select a suggestion → Review/Edit → Copy → Paste → Staff clicks Send
 
 ## 📦 Download & installation
 
-### Direct, verified v0.2.0 build
+### Direct download — v0.2.0 pre-release
 
-The current **successful CI build** contains two installation packages:
+The **published v0.2.0 GitHub Pre-release** includes version-matched, installable ZIP packages, built by the release workflow:
 
-| Package | File | How to obtain |
+| Package | Direct download | Installation |
 |:--|:--|:--|
-| **WordPress plugin** | `rar-inbox-ai-assist-0.2.0.zip` | [**Download verified CI build**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/runs/40515346439#artifacts) |
-| **Chrome extension** | `rar-inbox-ai-assist-extension-0.2.0.zip` | [**Download verified CI build**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/runs/40515346439#artifacts) |
-| Integrity checks | `SHA256SUMS` | Included in the same build artifact |
+| **WordPress plugin** | [**Download Plugin v0.2.0 (.zip)**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/rar-inbox-ai-assist-0.2.0.zip) | WordPress → Plugins → Add New → Upload Plugin |
+| **Chrome extension** | [**Download Extension v0.2.0 (.zip)**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/rar-inbox-ai-assist-extension-0.2.0.zip) | Extract ZIP → `chrome://extensions` → Developer mode → Load unpacked |
+| **SHA-256 checksums** | [**Download SHA256SUMS**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/SHA256SUMS) | Verify package integrity |
 
-**Download steps:** Open the CI build link above → under **Artifacts**, download `rar-inbox-ai-assist-build` (GitHub sign-in may be needed) → extract that artifact once to obtain **both** installation ZIPs and `SHA256SUMS`. Workflow artifacts are temporary; they are **not permanent release-download URLs**.
+[**View v0.2.0 Pre-release**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/tag/v0.2.0) · [**GitHub Releases**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases) · [**Latest CI results**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/workflows/ci.yml) · [**Source ZIP (not installable)**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/archive/refs/heads/main.zip)
 
-[**All CI Builds**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/workflows/ci.yml) · [**Releases (none published yet)**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases) · [**Full Source ZIP**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/archive/refs/heads/main.zip)
+> [!NOTE]
+> v0.2.0 is a **pre-release** and **not yet approved for production**. Release download URLs are public and do not require opening a temporary CI artifact. For current fixes, always check the latest [Releases](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases).
 
 > [!CAUTION]
 > **Do not upload the complete GitHub Source Code ZIP into WordPress.** Upload only `rar-inbox-ai-assist-0.2.0.zip`. Chrome requires the **extracted extension ZIP folder**, with `manifest.json` at its root.
@@ -172,6 +173,6 @@ Contributions should follow [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabi
 **Developed for Nabiad Distribution Limited**  
 *AI drafts the reply. Your team makes the final decision.*
 
-[Repository](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist) · [Download Build](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/runs/40515346439#artifacts) · [Installation Guide](docs/INSTALL.md)
+[Repository](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist) · [Download Plugin](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/rar-inbox-ai-assist-0.2.0.zip) · [Download Extension](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/rar-inbox-ai-assist-extension-0.2.0.zip) · [Installation Guide](docs/INSTALL.md)
 
 </div>
