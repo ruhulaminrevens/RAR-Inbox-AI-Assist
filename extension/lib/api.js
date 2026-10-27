@@ -4,7 +4,7 @@
  */
 
 export const DEFAULT_SITE = 'https://nabiad.com';
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 const TIMEOUT_MS = 25000;
 export const TOKEN_RE = /^iaa_[a-z0-9]{8}_[A-Za-z0-9]{40}$/;
 
@@ -23,6 +23,23 @@ export function buildUrl( base, path, params ) {
 
 export function apiBaseFor( site ) {
 	return `${ site.replace( /\/+$/, '' ) }/wp-json/rar-iaa/v1`;
+}
+
+/**
+ * The www / non-www twin of a site (https://nabiad.com ⇄ https://www.nabiad.com), or null.
+ * Used when the typed address redirects: the token is never sent through a redirect.
+ */
+export function wwwTwin( site ) {
+	try {
+		const u = new URL( site );
+		if ( u.protocol !== 'https:' ) {
+			return null;
+		}
+		u.hostname = u.hostname.startsWith( 'www.' ) ? u.hostname.slice( 4 ) : `www.${ u.hostname }`;
+		return u.origin;
+	} catch ( e ) {
+		return null;
+	}
 }
 
 export class Api {
@@ -52,7 +69,7 @@ export class Api {
 	/**
 	 * @returns {Promise<{ok:boolean,status:number,data:any,error:?{code:string,message:string,data:object},requestId:?string}>}
 	 */
-	async request( method, path, { body, params, headers, token, base } = {} ) {
+	async request( method, path, { body, params, headers, token, base, redirect } = {} ) {
 		const cfg = await this.config();
 		const tk = token || cfg.token;
 		if ( ! tk ) {
@@ -72,6 +89,8 @@ export class Api {
 				body: body === undefined ? undefined : JSON.stringify( body ),
 				credentials: 'omit',
 				cache: 'no-store',
+				// Never send the token through a redirect to another address.
+				redirect: redirect || 'manual',
 				signal: ctrl.signal,
 			} );
 		} catch ( e ) {
@@ -81,6 +100,10 @@ export class Api {
 		}
 		clearTimeout( timer );
 		const requestId = res.headers.get( 'X-IAA-Request-Id' );
+		if ( res.type === 'opaqueredirect' ) {
+			// The site answered with a redirect; the token was not forwarded (redirect: 'manual').
+			return { ok: false, status: 0, data: null, error: { code: 'REDIRECT', message: 'The site address redirects', data: {} }, requestId: null };
+		}
 		let data = null;
 		if ( res.status !== 204 ) {
 			try {

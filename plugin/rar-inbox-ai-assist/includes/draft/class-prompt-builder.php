@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 
 class PromptBuilder {
 
-	const PROMPT_VERSION = 'p2';
+	const PROMPT_VERSION = 'p3';
 
 	const VARIANTS = array(
 		'professional'  => 'Professional: polite, complete, business tone.',
@@ -46,7 +46,7 @@ class PromptBuilder {
 				'7. If the customer greeted with Assalamu alaikum (in any spelling), begin with "ওয়ালাইকুম আসসালাম" in Bangla replies or "Wa alaikum assalam" in English replies.',
 				'8. Placeholders such as [PHONE_1], [EMAIL_1], [ADDRESS_1], [NUMBER_1] or [CUSTOMER] stand for hidden personal data. Copy them unchanged if needed; never guess what they contain.',
 				'9. Keep each reply under 600 characters unless listing several prices. Plain text only: no markdown, no emojis except at most one in the friendly variant.',
-				'10. If FACTS say the contact is unverified, do not mention any dealer price, commission or stock level; offer to confirm after verifying the dealer, or share only public facts.',
+				'10. If FACTS say the contact is unverified, do not mention any dealer price, commission or stock level; offer to confirm after verifying the dealer, or share only public facts. A public_prices entry may be quoted with its label (for example "website price" or "MRP").',
 				'11. facts_used must list the ids (e.g. "kb:12", "price:340", "mrp:340") of every fact a reply relies on, and only ids that exist in FACTS.',
 			)
 		);

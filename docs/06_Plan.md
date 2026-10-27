@@ -580,6 +580,19 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 - **Verify:** on staging or during a quiet hour: kill switch on → panel shows S-13 within one request; off again; deactivate/reactivate keeps data.
 - **DoD:** steps and timings recorded in `docs/runbooks/install.md`. · **Status:** TODO · **Notes:**
 
+## Phase 6 — v0.2.0 owner requests (27 Oct 2026)
+
+Requested by the owner after installing 0.1.0 (PRD §17). Evidence: local WP 7.1.3 / PHP 8.3.6 — `php tests/php/run-all.php` → 592/592 on MariaDB 10.11 + WooCommerce 11.1.2, 532/532 on SQLite, 594/594 on a fresh install from the 0.2.0 plugin ZIP (+ WooCommerce); `node --test tests/ext/*.test.mjs` → 23/23; `node tests/e2e/run.mjs` → 21/21 on all three sites (axe-core: 0 serious/critical on 6 panel views and 12 admin views).
+
+| ID | Task | Status | Notes |
+|---|---|---|---|
+| T6.01 | WooCommerce product & price link (FR-24, FR-25, BR-11) | DONE | `w_wc_sync.php` 48/48: public tier, rules (−10 % / round 5, regular −5 %), variations, SKU/alias/unit, hidden/excluded/no-price skipped, unchanged → no snapshot, stock-only change does not sync, price change → debounced cron sync, stale fallback at draft time, website price for unverified, dealer price through REST with guard pass, pruning without orphans. `w_woocommerce.php` 14/14 (HPOS on/off). |
+| T6.02 | Multiple AI providers + fallback + free tier (FR-26, FR-27) | DONE | `unit/providers.php` 34/34 (Gemini/compat request + response mapping with mocked HTTP, quota flag, key never in URL, settings validation, chain pricing, 0.1.0 price compatibility); `l_providers_http.php` 24/24 (free primary cost 0, quota → paid fallback, only paid call charged, no open reservation, both fail, no fallback for our own daily limit). **No live Gemini/Groq/OpenRouter call made** — owner keys needed. |
+| T6.03 | Professional admin UI + plugin action links (FR-28) | DONE | `j_admin_http.php` 43/43; E2E renders 12 admin views without PHP notices and asserts "Dashboard \| Settings" on the Plugins screen (found and fixed missing links on a ZIP install — OPcache with fixed ZIP timestamps; packaging now uses build time). |
+| T6.04 | Panel polish, redirect-safe connect | DONE | ext unit tests (`wwwTwin`, requests use `redirect: 'manual'`, REDIRECT error); E2E connect/ready views; AI note shown. |
+| T6.05 | Guard: sizes in product names are not prices (BR-12) | DONE | Found by T6.01 (perfume "100ml" next to a price was blocked). `unit/guard.php` 54/54, red-team 33/33 unchanged; JS mirror test. |
+| T6.06 | Upgrade 0.1.0 → 0.2.0 with data | DONE | 0.1.0 (commit d8e9ba3) installed with KB, tier, dealer, CSV list, token, legacy prices; replaced in place under a running server with OPcache → schema 3, data kept, token valid, legacy price read, drafts work. |
+
 ## Blockers log
 
 | Date | Task | Blocker | Owner | Resolution |

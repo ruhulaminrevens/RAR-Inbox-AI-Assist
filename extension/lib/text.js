@@ -21,6 +21,8 @@ export function normNumber( raw ) {
 const PRICE_CUE = /(৳|টাকা|টাঃ|tk\b|tk\.|taka|bdt|\/-|দাম|মূল্য|price|rate|রেট|mrp)/iu;
 const PERCENT_CUE = /^\s?(%|শতাংশ|percent|পার্সেন্ট|পারসেন্ট)/iu;
 const COMMERCIAL = /(discount|ডিসকাউন্ট|ছাড় দে|ছাড় দি|ছাড় পাব|কমিশন|commission|% off|ফ্রি দে|free gift)/iu;
+// A number directly followed by a measurement unit (100ml, 2 kg, 12 pcs) is a quantity, not a price.
+const MEASURE = /^\s?(ml|ltr|litre|liter|l\b|g\b|gm|gram|kg|mg|oz|pcs|pc\b|piece|টি(?![\u0980-\u09FF])|পিস|মিলি|মিলিলিটার|লিটার|গ্রাম|কেজি)/iu;
 
 /** Numbers in a text with classification. */
 export function numbers( text ) {
@@ -35,10 +37,11 @@ export function numbers( text ) {
 		// Cue windows stop at sentence boundaries so "৳১,২৫০। ৭ দিনে" does not make 7 a price.
 		const before = chars.slice( Math.max( 0, pos - 12 ), pos ).join( '' ).split( /[।!?\n]|\.\s/ ).pop();
 		const after = chars.slice( pos + len, pos + len + 12 ).join( '' ).split( /[।!?\n]|\.\s/ )[ 0 ];
+		const measure = MEASURE.test( chars.slice( pos + len, pos + len + 14 ).join( '' ) );
 		out.push( {
 			raw: m[ 0 ],
 			value: normNumber( m[ 0 ] ),
-			price: PRICE_CUE.test( `${ before } ${ after }` ),
+			price: ! measure && PRICE_CUE.test( `${ before } ${ after }` ),
 			percent: PERCENT_CUE.test( after ),
 		} );
 	}

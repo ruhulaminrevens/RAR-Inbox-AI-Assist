@@ -62,6 +62,8 @@ export function errorText( code, data = {} ) {
 		case 'NETWORK':
 		case 'CLIENT_TIMEOUT':
 			return 'সংযোগ সমস্যা। আবার চেষ্টা করুন।';
+		case 'REDIRECT':
+			return 'সাইটের ঠিকানাটি অন্য ঠিকানায় চলে যায়। উন্নত (Advanced) অংশে সঠিক ঠিকানা দিন, যেমন https://www.nabiad.com';
 		case 'RATE_LIMITED':
 			return `একটু অপেক্ষা করুন (${ data.retry_after || 10 } সেকেন্ড)।`;
 		case 'BUSY':
@@ -77,7 +79,7 @@ export function errorText( code, data = {} ) {
 		case 'PROVIDER_ERROR':
 		case 'PROVIDER_TIMEOUT':
 		case 'PROVIDER_BAD_OUTPUT':
-			return 'AI সার্ভিস সাড়া দিচ্ছে না।';
+			return 'AI সার্ভিস এখন সাড়া দিচ্ছে না (ফ্রি সীমা শেষ হতে পারে)। একটু পরে চেষ্টা করুন বা দ্রুত উত্তর ব্যবহার করুন।';
 		case 'FORBIDDEN':
 			return 'আপনার অনুমতি নেই।';
 		case 'SERVICE_DISABLED':
@@ -177,4 +179,13 @@ export function nextVariant( ids, current, delta ) {
 	const i = ids.indexOf( current );
 	const n = i < 0 ? 0 : ( i + delta + ids.length ) % ids.length;
 	return ids[ n ];
+}
+
+/** Small note under suggestions: which AI answered (no model internals). */
+export function aiNote( ai ) {
+	if ( ! ai || ! ai.label ) {
+		return '';
+	}
+	const name = String( ai.label ).replace( /\s*\(.*\)$/, '' );
+	return `AI: ${ name }${ ai.free ? ' (ফ্রি)' : '' }${ ai.fallback ? ' · ব্যাকআপ AI ব্যবহৃত' : '' }`;
 }

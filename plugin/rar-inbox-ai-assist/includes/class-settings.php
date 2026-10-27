@@ -13,6 +13,17 @@ class Settings {
 
 	const OPTION = 'rar_iaa_settings';
 
+	/** AI providers (id => label). Keys: RAR_IAA_{ID}_API_KEY constant or encrypted option. */
+	const PROVIDERS = array(
+		'anthropic' => 'Anthropic (Claude)',
+		'openai'    => 'OpenAI',
+		'gemini'    => 'Google Gemini',
+		'compat'    => 'OpenAI-compatible (Groq, OpenRouter, …)',
+	);
+
+	/** Providers that may be marked as "free tier" (no token cost; provider terms apply). */
+	const FREE_CAPABLE = array( 'gemini', 'compat' );
+
 	/** @var array|null */
 	private static $cache = null;
 
@@ -23,6 +34,14 @@ class Settings {
 			'provider'                 => 'anthropic',
 			'anthropic_model'          => 'claude-haiku-5-5',
 			'openai_model'             => '',
+			'gemini_model'             => 'gemini-3.1-flash-lite',
+			'compat_base_url'          => '',
+			'compat_model'             => '',
+			'fallback_provider'        => '',
+			'prices'                   => array(),
+			'free_providers'           => array(),
+			'free_tier_consent'        => 0,
+			// Legacy (0.1.0) single price pair; read as the price of the 0.1.0 provider when "prices" has no entry.
 			'price_in_usd_per_mtok'    => 0.0,
 			'price_out_usd_per_mtok'   => 0.0,
 			'max_output_tokens'        => 1600,
@@ -38,6 +57,9 @@ class Settings {
 			'exact_stock'              => 0,
 			'masked_logging'           => 0,
 			'live_inbox'               => 0,
+			'wc_auto_sync'             => 1,
+			'wc_default_unit'          => 'pcs',
+			'wc_categories'            => array(),
 			'extra_use_roles'          => array(),
 			'extra_link_roles'         => array(),
 			'delete_data_on_uninstall' => 0,
@@ -96,13 +118,14 @@ class Settings {
 				}
 			}
 		}
-		foreach ( array( 'service_enabled', 'ai_enabled', 'allow_public_mrp', 'exact_stock', 'masked_logging', 'live_inbox', 'delete_data_on_uninstall' ) as $k ) {
+		foreach ( array( 'service_enabled', 'ai_enabled', 'allow_public_mrp', 'exact_stock', 'masked_logging', 'live_inbox', 'delete_data_on_uninstall', 'wc_auto_sync', 'free_tier_consent' ) as $k ) {
 			if ( array_key_exists( $k, $input ) ) {
 				$clean[ $k ] = empty( $input[ $k ] ) ? 0 : 1;
 			}
 		}
 		$enums = array(
-			'provider'              => array( 'anthropic', 'openai' ),
+			'provider'              => array_keys( self::PROVIDERS ),
+			'fallback_provider'     => array_merge( array( '' ), array_keys( self::PROVIDERS ) ),
 			'banglish_reply_script' => array( 'bn', 'latin' ),
 			'reply_digits'          => array( 'en', 'bn' ),
 		);
@@ -115,11 +138,11 @@ class Settings {
 				}
 			}
 		}
-		foreach ( array( 'anthropic_model', 'openai_model' ) as $k ) {
+		foreach ( array( 'anthropic_model', 'openai_model', 'gemini_model', 'compat_model' ) as $k ) {
 			if ( array_key_exists( $k, $input ) ) {
 				$v = trim( (string) $input[ $k ] );
-				if ( '' !== $v && ! preg_match( '/^[A-Za-z0-9._:-]{2,80}$/', $v ) ) {
-					$errors[ $k ] = 'Model ID may contain letters, digits, dot, dash, underscore and colon only.';
+				if ( '' !== $v && ! preg_match( '#^[A-Za-z0-9._:/-]{2,100}$#', $v ) ) {
+					$errors[ $k ] = 'Model ID may contain letters, digits, dot, dash, underscore, colon and slash only.';
 				} else {
 					$clean[ $k ] = $v;
 				}
@@ -136,6 +159,53 @@ class Settings {
 					$clean[ $k ] = $v;
 				}
 			}
+		}
+		if ( array_key_exists( 'compat_base_url', $input ) ) {
+			$v = trim( (string) $input['compat_base_url'] );
+			$v = rtrim( $v, '/' );
+			if ( '' !== $v && ( ! wp_http_validate_url( $v ) || 0 !== strpos( $v, 'https://' ) ) ) {
+				$errors['compat_base_url'] = 'Enter an https:// API base URL, e.g. https://api.groq.com/openai/v1';
+			} else {
+				$clean['compat_base_url'] = esc_url_raw( $v );
+			}
+		}
+		if ( array_key_exists( 'prices', $input ) ) {
+			$prices = array();
+			foreach ( (array) $input['prices'] as $pid => $pair ) {
+				if ( ! isset( self::PROVIDERS[ $pid ] ) || ! is_array( $pair ) ) {
+					continue;
+				}
+				foreach ( array( 'in', 'out' ) as $dir ) {
+					$raw = isset( $pair[ $dir ] ) ? $pair[ $dir ] : 0;
+					$v   = '' === $raw ? 0.0 : filter_var( $raw, FILTER_VALIDATE_FLOAT );
+					if ( false === $v || $v < 0 || $v > 1000 ) {
+						$errors[ 'prices_' . $pid . '_' . $dir ] = 'Must be a number from 0 to 1000.';
+					} else {
+						$prices[ $pid ][ $dir ] = round( (float) $v, 4 );
+					}
+				}
+			}
+			$clean['prices'] = $prices;
+		}
+		if ( array_key_exists( 'free_providers', $input ) ) {
+			$clean['free_providers'] = array_values( array_intersect( self::FREE_CAPABLE, (array) $input['free_providers'] ) );
+		}
+		if ( ! empty( $clean['free_providers'] ) && empty( $clean['free_tier_consent'] ) ) {
+			$errors['free_tier_consent'] = 'Tick the free-tier consent box, or untick "free tier" for every provider.';
+		}
+		if ( '' !== $clean['fallback_provider'] && $clean['fallback_provider'] === $clean['provider'] ) {
+			$errors['fallback_provider'] = 'Choose a different provider than the primary one, or "None".';
+		}
+		if ( array_key_exists( 'wc_default_unit', $input ) ) {
+			$v = trim( sanitize_text_field( (string) $input['wc_default_unit'] ) );
+			if ( '' === $v || Util::strlen( $v ) > 30 ) {
+				$errors['wc_default_unit'] = 'Required (max 30 characters), e.g. pcs.';
+			} else {
+				$clean['wc_default_unit'] = $v;
+			}
+		}
+		if ( array_key_exists( 'wc_categories', $input ) ) {
+			$clean['wc_categories'] = array_values( array_unique( array_filter( array_map( 'intval', (array) $input['wc_categories'] ) ) ) );
 		}
 		foreach ( array( 'extra_use_roles', 'extra_link_roles' ) as $k ) {
 			if ( array_key_exists( $k, $input ) ) {
@@ -160,6 +230,24 @@ class Settings {
 		update_option( self::OPTION, $clean, false );
 		self::$cache = null;
 		return array();
+	}
+
+	/** Token prices (USD per million) for a provider: array( in, out ). */
+	public static function provider_price( $provider ) {
+		$prices = (array) self::get( 'prices' );
+		if ( isset( $prices[ $provider ] ) ) {
+			return array( (float) $prices[ $provider ]['in'], (float) $prices[ $provider ]['out'] );
+		}
+		// 0.1.0 stored one price pair for whichever provider was selected.
+		if ( (string) self::get( 'provider' ) === $provider ) {
+			return array( (float) self::get( 'price_in_usd_per_mtok' ), (float) self::get( 'price_out_usd_per_mtok' ) );
+		}
+		return array( 0.0, 0.0 );
+	}
+
+	/** True when the admin marked this provider as a free tier and gave consent. */
+	public static function is_free( $provider ) {
+		return in_array( $provider, (array) self::get( 'free_providers' ), true ) && in_array( $provider, self::FREE_CAPABLE, true ) && (int) self::get( 'free_tier_consent' );
 	}
 
 	/** Reset the in-memory cache (tests). */

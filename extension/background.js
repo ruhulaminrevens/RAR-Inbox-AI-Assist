@@ -4,7 +4,7 @@
  * messages from content scripts are refused.
  */
 
-import { Api, TOKEN_RE, apiBaseFor, DEFAULT_SITE } from './lib/api.js';
+import { Api, TOKEN_RE, apiBaseFor, wwwTwin, DEFAULT_SITE } from './lib/api.js';
 import { uuid4 } from './lib/ids.js';
 
 const api = new Api( chrome.storage.local, ( ...a ) => fetch( ...a ) );
@@ -99,9 +99,20 @@ const HANDLERS = {
 		if ( ! TOKEN_RE.test( String( token || '' ) ) ) {
 			return { ok: false, error: { code: 'TOKEN_FORMAT', message: 'Token format is wrong' } };
 		}
-		const s = ( site || DEFAULT_SITE ).replace( /\/+$/, '' );
-		const b = base || apiBaseFor( s );
-		const res = await api.request( 'GET', '/me', { token, base: b } );
+		let s = ( site || DEFAULT_SITE ).replace( /\/+$/, '' );
+		let b = base || apiBaseFor( s );
+		let res = await api.request( 'GET', '/me', { token, base: b } );
+		const twin = ! base && res.error && res.error.code === 'REDIRECT' ? wwwTwin( s ) : null;
+		if ( twin ) {
+			// nabiad.com redirects to www.nabiad.com (or the reverse): use the address that answers directly.
+			const alt = await api.request( 'GET', '/me', { token, base: apiBaseFor( twin ) } );
+			if ( alt.ok ) {
+				s = twin;
+				b = apiBaseFor( twin );
+				res = alt;
+				res.movedTo = twin;
+			}
+		}
 		await remember( 'connect', res );
 		if ( res.ok ) {
 			await api.saveConnection( token, s, b );

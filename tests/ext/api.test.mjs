@@ -81,3 +81,23 @@ test( 'saveConnection / forget', async () => {
 	await api.forget();
 	assert.equal( ( await api.config() ).token, null );
 } );
+
+test( 'wwwTwin toggles www for https sites only', async () => {
+	const { wwwTwin } = await import( '../../extension/lib/api.js' );
+	assert.equal( wwwTwin( 'https://nabiad.com' ), 'https://www.nabiad.com' );
+	assert.equal( wwwTwin( 'https://www.nabiad.com/' ), 'https://nabiad.com' );
+	assert.equal( wwwTwin( 'http://nabiad.com' ), null );
+	assert.equal( wwwTwin( 'not a url' ), null );
+} );
+
+test( 'requests never follow redirects; a redirect is reported as REDIRECT', async () => {
+	let seen = null;
+	const api = new Api( memoryStorage( { 'iaa.token': 'iaa_abcdefgh_' + 'x'.repeat( 40 ) } ), async ( url, init ) => {
+		seen = init;
+		return { type: 'opaqueredirect', status: 0, ok: false, headers: new Map(), json: async () => null };
+	} );
+	const r = await api.request( 'GET', '/me' );
+	assert.equal( seen.redirect, 'manual' );
+	assert.equal( r.ok, false );
+	assert.equal( r.error.code, 'REDIRECT' );
+} );

@@ -216,3 +216,13 @@ Panel header: secondary background, 48 px, title "Inbox AI Assist", connection d
 
 Use `iaa-suggestion-card` in a vertical stack down to 320 px usable width, existing `--iaa-*` tokens, and a native radio/radiogroup with keyboard arrows and Space selection. Expose labels Professional (পেশাদার), Friendly (আন্তরিক), Short (সংক্ষিপ্ত), optional Sales-focused (বিক্রয় সহায়ক). States: loading, available, selected, warned, blocked, handoff, stale. Each variant has its **own** fact chips/guard warnings. Blocked commercial claims are not insertable. On selection, fill the editable composer; Copy/Insert are user-initiated, never Send. Label confidential dealer vs public-only facts with text, not only colour. Provide paste + Copy layout when live Meta insertion is not authorised/reliable.
 
+
+## 12. v0.2.0 admin and panel components
+
+- **Admin shell** (`Admin\Ui::header`): dark brand bar (`--iaa-secondary`) with logo, version, business name, "AI: primary → fallback" pill and service status pill; white section navigation with an underlined active item; title row with subtitle and primary action. All plugin pages use it.
+- **Panels/cards**: white surface, `--iaa-radius-lg`, `--iaa-shadow-sm`; KPI stat cards; responsive grids (auto-fit, min 280 px).
+- **Setup checklist** (Overview): progress bar + six steps (AI provider, test, answers, products, dealers, extension token) with done state and a call-to-action button.
+- **Empty states**: icon, title, one-sentence explanation, primary button to the next step.
+- **Settings tabs**: one form, panes shown by `admin.js` (no data lost on save); provider cards (primary/fallback highlighted, free-tier badge), warning-coloured free-tier consent box, sticky save bar.
+- **Panel**: numbered step lists (`.iaa-steps`) on connect and ready screens; meta line under suggestions with the AI used.
+- Accessibility: every control labelled (axe-core WCAG 2.1 A/AA: 0 serious/critical on 6 panel views and 12 admin views).

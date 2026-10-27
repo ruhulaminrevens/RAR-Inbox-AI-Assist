@@ -483,3 +483,18 @@ CREATE TABLE {prefix}rar_iaa_cost_reservations (
 ```
 
 Reserve: inside one transaction under lock `budget`, check `spent + reserved + amount ≤ monthly cap` and the daily request limit, insert the row and add `amount` to `usage_daily.reserved_cost_usd_micros`. Settle: mark `settled`, subtract the reservation, add the real cost. Recovery: `Budget::release_expired()` (on each reserve and in daily maintenance) releases rows past `expires_at`. Schema version 2 also adds `draft_log.suggestion_count`, `selected_variant_id`, `variant_guard_summary` and `usage_daily.reserved_cost_usd_micros`.
+
+## 15. Schema version 3 (v0.2.0)
+
+Added by `dbDelta` (in place, no data change):
+
+| Table | Column | Type / default | Meaning |
+|---|---|---|---|
+| tiers | `price_source` | varchar(12) `'csv'` | `csv` \| `woocommerce` |
+| tiers | `wc_price_basis` | varchar(10) `'current'` | `current` (sale price when on sale) \| `regular` |
+| tiers | `wc_adjust_pct` | decimal(6,2) `0` | −90 … +200 |
+| tiers | `wc_rounding` | smallint unsigned `0` | 0 (none), 1, 5, 10 ৳ |
+| tiers | `is_public` | tinyint(1) `0` | 1 = the website-price tier (exactly one is created automatically; always current price, no adjustment) |
+| price_lists | `source` | varchar(12) `'csv'` | `csv` \| `woocommerce` (synced snapshot) |
+
+For synced lists `file_sha256` is the hash of the generated rows (change detection), `mrp_bdt` holds the website price and `stock_mode` is `wc`. Options: `rar_iaa_wc_sync_pending`, `rar_iaa_wc_sync_state`, `rar_iaa_provider_tests` (no secrets, no conversation text). Product meta (WooCommerce): `_rar_iaa_aliases`, `_rar_iaa_unit`, `_rar_iaa_pack_size`, `_rar_iaa_exclude`. New settings keys: `gemini_model`, `compat_base_url`, `compat_model`, `fallback_provider`, `prices` (per provider), `free_providers`, `free_tier_consent`, `wc_auto_sync`, `wc_default_unit`, `wc_categories`; the 0.1.0 pair `price_in/out_usd_per_mtok` is still read for the provider that was selected in 0.1.0 until per-provider prices are saved.

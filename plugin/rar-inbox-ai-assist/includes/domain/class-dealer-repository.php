@@ -77,6 +77,86 @@ class DealerRepository {
 		return $id;
 	}
 
+	/** The tier whose price list gives the public (website) prices, if any. */
+	public static function public_tier() {
+		global $wpdb;
+		return $wpdb->get_row( 'SELECT * FROM ' . Db::t( 'tiers' ) . " WHERE is_public = 1 AND status = 'active' ORDER BY id ASC LIMIT 1" ); // phpcs:ignore
+	}
+
+	/**
+	 * Create the public "Website price" tier (WooCommerce current price, no adjustment) once.
+	 * Returns its id.
+	 */
+	public static function ensure_public_tier( $user_id = 0 ) {
+		global $wpdb;
+		$t   = Db::t( 'tiers' );
+		$row = $wpdb->get_row( "SELECT * FROM {$t} WHERE is_public = 1 ORDER BY id ASC LIMIT 1" ); // phpcs:ignore
+		if ( $row ) {
+			return (int) $row->id;
+		}
+		$code = 'WEB';
+		for ( $i = 2; $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t} WHERE code = %s", $code ) ); $i++ ) {
+			$code = 'WEB' . $i;
+		}
+		$data = array(
+			'code'           => $code,
+			'name'           => 'Website price (public)',
+			'status'         => 'active',
+			'price_source'   => 'woocommerce',
+			'wc_price_basis' => 'current',
+			'wc_adjust_pct'  => 0,
+			'wc_rounding'    => 0,
+			'is_public'      => 1,
+			'created_at'     => Db::now(),
+			'updated_at'     => Db::now(),
+		);
+		$wpdb->insert( $t, $data );
+		$id = (int) $wpdb->insert_id;
+		Audit::record( 'tier.create', 'tier', $id, null, $data, $user_id );
+		return $id;
+	}
+
+	/**
+	 * Price rule of a tier: source csv|woocommerce; for WooCommerce the basis (current = sale price
+	 * when on sale, else regular | regular), adjustment in percent (-90…+200) and rounding (0 = none,
+	 * or to the nearest 1/5/10 taka).
+	 */
+	public static function save_tier_rule( $id, array $in, $user_id ) {
+		global $wpdb;
+		$tier = self::tier( $id );
+		if ( ! $tier ) {
+			return new \WP_Error( 'NOT_FOUND', 'Tier not found.' );
+		}
+		$errors = array();
+		$source = isset( $in['price_source'] ) && 'woocommerce' === $in['price_source'] ? 'woocommerce' : 'csv';
+		$basis  = isset( $in['wc_price_basis'] ) && 'regular' === $in['wc_price_basis'] ? 'regular' : 'current';
+		$adjust = isset( $in['wc_adjust_pct'] ) && '' !== $in['wc_adjust_pct'] ? filter_var( Util::ascii_digits( (string) $in['wc_adjust_pct'] ), FILTER_VALIDATE_FLOAT ) : 0.0;
+		$round  = isset( $in['wc_rounding'] ) ? (int) $in['wc_rounding'] : 0;
+		if ( false === $adjust || $adjust < -90 || $adjust > 200 ) {
+			$errors['wc_adjust_pct'] = 'Adjustment must be a number from -90 to 200 (percent).';
+		}
+		if ( ! in_array( $round, array( 0, 1, 5, 10 ), true ) ) {
+			$errors['wc_rounding'] = 'Rounding must be none, 1, 5 or 10.';
+		}
+		if ( (int) $tier->is_public && ( 'woocommerce' !== $source || 'current' !== $basis || 0.0 !== round( (float) $adjust, 2 ) ) ) {
+			$errors['price_source'] = 'The public website tier always uses the current WooCommerce price with no adjustment.';
+		}
+		if ( $errors ) {
+			return new \WP_Error( 'VALIDATION_FAILED', 'Please fix the errors.', array( 'fields' => $errors ) );
+		}
+		$data = array(
+			'price_source'   => $source,
+			'wc_price_basis' => $basis,
+			'wc_adjust_pct'  => round( (float) $adjust, 2 ),
+			'wc_rounding'    => $round,
+			'updated_at'     => Db::now(),
+		);
+		$wpdb->update( Db::t( 'tiers' ), $data, array( 'id' => (int) $id ) );
+		$wpdb->query( $wpdb->prepare( 'UPDATE ' . Db::t( 'tiers' ) . ' SET row_version = row_version + 1 WHERE id = %d', $id ) );
+		Audit::record( 'tier.price_rule', 'tier', $id, array( 'price_source' => $tier->price_source, 'wc_price_basis' => $tier->wc_price_basis, 'wc_adjust_pct' => $tier->wc_adjust_pct, 'wc_rounding' => $tier->wc_rounding ), $data, $user_id );
+		return (int) $id;
+	}
+
 	/* ------------------------------------------------------------------ Dealers */
 
 	public static function dealer( $id ) {
@@ -208,5 +288,15 @@ class DealerRepository {
 	public static function count_active() {
 		global $wpdb;
 		return (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Db::t( 'dealers' ) . " WHERE status = 'active'" );
+	}
+
+	/** Active dealers per tier id. */
+	public static function count_by_tier() {
+		global $wpdb;
+		$out = array();
+		foreach ( $wpdb->get_results( 'SELECT tier_id, COUNT(*) AS n FROM ' . Db::t( 'dealers' ) . " WHERE status = 'active' GROUP BY tier_id" ) as $r ) { // phpcs:ignore
+			$out[ (int) $r->tier_id ] = (int) $r->n;
+		}
+		return $out;
 	}
 }

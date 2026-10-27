@@ -19,12 +19,19 @@ class StubProvider implements Provider {
 		return function_exists( 'wp_get_environment_type' ) && in_array( wp_get_environment_type(), array( 'local', 'development' ), true );
 	}
 
+	/** @var string stub | stub:fallback (a second stub stands in for the fallback provider in tests). */
+	private $id;
+
+	public function __construct( $id = 'stub' ) {
+		$this->id = (string) $id;
+	}
+
 	public function id() {
-		return 'stub';
+		return $this->id;
 	}
 
 	public function model() {
-		return 'stub-1';
+		return 'stub:fallback' === $this->id ? 'stub-fallback-1' : 'stub-1';
 	}
 
 	public function complete( array $prompt, array $opts ) {
@@ -50,14 +57,14 @@ class StubProvider implements Provider {
 				usleep( (int) $s['delay_ms'] * 1000 );
 			}
 			if ( isset( $s['error'] ) ) {
-				return new \WP_Error( (string) $s['error'], 'Scripted error', array( 'status' => 502, 'retryable' => ! empty( $s['retryable'] ) ) );
+				return new \WP_Error( (string) $s['error'], 'Scripted error', array( 'status' => 502, 'retryable' => ! empty( $s['retryable'] ), 'quota' => ! empty( $s['quota'] ) ) );
 			}
 			if ( isset( $s['text'] ) ) {
 				return array(
 					'text'          => (string) $s['text'],
 					'input_tokens'  => isset( $s['input_tokens'] ) ? (int) $s['input_tokens'] : 100,
 					'output_tokens' => isset( $s['output_tokens'] ) ? (int) $s['output_tokens'] : 100,
-					'model'         => 'stub-1',
+					'model'         => $this->model(),
 					'latency_ms'    => isset( $s['delay_ms'] ) ? (int) $s['delay_ms'] : 1,
 				);
 			}
@@ -118,7 +125,7 @@ class StubProvider implements Provider {
 			'text'          => wp_json_encode( array( 'suggestions' => $out ), JSON_UNESCAPED_UNICODE ),
 			'input_tokens'  => (int) ceil( strlen( $prompt['system'] . $prompt['user'] ) / 4 ),
 			'output_tokens' => 120 * count( $ids ),
-			'model'         => 'stub-1',
+			'model'         => $this->model(),
 			'latency_ms'    => 1,
 		);
 	}

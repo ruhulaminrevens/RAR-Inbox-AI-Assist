@@ -2,6 +2,9 @@
 /**
  * OpenAI Chat Completions (TRD §8). Model entered by the admin.
  *
+ * Also used for OpenAI-compatible APIs (Groq, OpenRouter, …) with a custom base URL: those get
+ * `max_tokens` and no `response_format`, which not every compatible model supports.
+ *
  * @package RarIaa
  */
 
@@ -15,14 +18,23 @@ class OpenaiProvider implements Provider {
 
 	private $key;
 	private $model;
+	private $url;
+	private $id;
 
-	public function __construct( $key, $model ) {
+	/**
+	 * @param string      $key      API key.
+	 * @param string      $model    Model id.
+	 * @param string|null $base_url OpenAI-compatible base URL (…/v1); null = OpenAI itself.
+	 */
+	public function __construct( $key, $model, $base_url = null ) {
 		$this->key   = (string) $key;
 		$this->model = (string) $model;
+		$this->url   = null === $base_url ? self::URL : rtrim( (string) $base_url, '/' ) . '/chat/completions';
+		$this->id    = null === $base_url ? 'openai' : 'compat';
 	}
 
 	public function id() {
-		return 'openai';
+		return $this->id;
 	}
 
 	public function model() {
@@ -30,18 +42,22 @@ class OpenaiProvider implements Provider {
 	}
 
 	public function complete( array $prompt, array $opts ) {
-		$body  = array(
-			'model'                 => $this->model,
-			'max_completion_tokens' => (int) $opts['max_tokens'],
-			'response_format'       => array( 'type' => 'json_object' ),
-			'messages'              => array(
+		$body = array(
+			'model'    => $this->model,
+			'messages' => array(
 				array( 'role' => 'system', 'content' => $prompt['system'] ),
 				array( 'role' => 'user', 'content' => $prompt['user'] ),
 			),
 		);
+		if ( 'openai' === $this->id ) {
+			$body['max_completion_tokens'] = (int) $opts['max_tokens'];
+			$body['response_format']       = array( 'type' => 'json_object' );
+		} else {
+			$body['max_tokens'] = (int) $opts['max_tokens'];
+		}
 		$start = microtime( true );
 		$res   = wp_remote_post(
-			self::URL,
+			$this->url,
 			array(
 				'timeout' => (int) $opts['timeout'],
 				'headers' => array(
@@ -59,8 +75,8 @@ class OpenaiProvider implements Provider {
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		$json = json_decode( (string) wp_remote_retrieve_body( $res ), true );
 		if ( $code < 200 || $code >= 300 ) {
-			$type = is_array( $json ) && isset( $json['error']['code'] ) ? (string) $json['error']['code'] : 'http_' . $code;
-			return new \WP_Error( 'PROVIDER_ERROR', 'AI provider error: ' . $type, array( 'status' => 502, 'provider_status' => $code, 'retryable' => $code >= 500, 'latency_ms' => $ms ) );
+			$type = is_array( $json ) && isset( $json['error']['code'] ) && is_scalar( $json['error']['code'] ) ? (string) $json['error']['code'] : 'http_' . $code;
+			return new \WP_Error( 'PROVIDER_ERROR', 'AI provider error: ' . sanitize_key( $type ), array( 'status' => 502, 'provider_status' => $code, 'retryable' => $code >= 500, 'quota' => 429 === $code, 'latency_ms' => $ms ) );
 		}
 		return array(
 			'text'          => isset( $json['choices'][0]['message']['content'] ) ? (string) $json['choices'][0]['message']['content'] : '',

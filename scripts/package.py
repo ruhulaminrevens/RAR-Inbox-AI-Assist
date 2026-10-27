@@ -15,6 +15,7 @@ import hashlib
 import json
 import re
 import sys
+import time
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
@@ -52,10 +53,13 @@ def files(base):
 
 
 def build(zip_path, base, prefix):
+    # Build time, not a fixed date: an unchanged timestamp across versions lets PHP OPcache
+    # (validate_timestamps) keep serving the old file after an upgrade that preserves ZIP times.
+    stamp = time.localtime()[:6]
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         n = 0
         for p in files(base):
-            info = zipfile.ZipInfo(prefix + p.relative_to(base).as_posix(), date_time=(2026, 1, 1, 0, 0, 0))
+            info = zipfile.ZipInfo(prefix + p.relative_to(base).as_posix(), date_time=stamp)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
             z.writestr(info, p.read_bytes())

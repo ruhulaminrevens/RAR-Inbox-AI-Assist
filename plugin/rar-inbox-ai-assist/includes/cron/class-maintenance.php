@@ -27,6 +27,15 @@ class Maintenance {
 		$report['audit_log']         = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . Db::t( 'audit_log' ) . ' WHERE created_at < %s', Db::now( -730 * DAY_IN_SECONDS ) ) );
 		$report['tokens']            = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . Db::t( 'tokens' ) . ' WHERE (revoked_at IS NOT NULL AND revoked_at < %s) OR expires_at < %s', Db::now( -400 * DAY_IN_SECONDS ), Db::now( -400 * DAY_IN_SECONDS ) ) );
 		$report['cost_reservations'] = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . Db::t( 'cost_reservations' ) . " WHERE status <> 'reserved' AND created_at < %s", Db::now( -400 * DAY_IN_SECONDS ) ) );
+		if ( \RarIaa\Domain\WcCatalogue::available() && Settings::get( 'wc_auto_sync' ) ) {
+			$sync                 = \RarIaa\Domain\WcCatalogue::sync( 0, 'daily', 30 );
+			$report['wc_sync']    = is_wp_error( $sync ) ? $sync->get_error_code() : array_map(
+				static function ( $t ) {
+					return $t['status'];
+				},
+				$sync['tiers']
+			);
+		}
 		update_option( 'rar_iaa_maintenance_last_run', array( 'at' => Db::now(), 'report' => $report ), false );
 		return $report;
 	}

@@ -90,3 +90,18 @@ if ( ! empty( $with_ids['products'] ) ) {
 $r = FactGuard::check( 'আপনার ২০ কার্টনের অর্ডার নোট করলাম।', $with_ids, array() );
 t_eq( 'warned', $r['result'], 'fact ID number does not whitelist a quantity' );
 t_ok( in_array( 'UNVERIFIED_NUMBER', array_column( $r['warnings'], 'code' ), true ), 'unverified quantity warned despite matching ID' );
+// Product names with sizes (perfumes: "100ml") are facts, not prices.
+$perfume = array(
+	'audience' => 'dealer',
+	'kb'       => array(),
+	'products' => array( array( 'id' => 'price:1', 'product' => 'Jaguar Classic Blue 100ml', 'unit' => 'pcs', 'price_bdt' => 1125.0, 'price_display' => '৳1,125' ) ),
+);
+t_eq( 'pass', FactGuard::check( 'Jaguar Classic Blue 100ml: ৳1,125 প্রতি pcs।', $perfume, array() )['result'], 'size in product name next to price is not a price' );
+t_eq( 'pass', FactGuard::check( 'jaguar classic blue 100ml এর দাম ৳1,125 প্রতি পিস।', $perfume, array() )['result'], 'product name match is case-insensitive' );
+t_eq( 'blocked', FactGuard::check( 'Jaguar Classic Blue 100ml: ৳999 প্রতি pcs।', $perfume, array() )['result'], 'wrong price next to the name still blocked' );
+$r = FactGuard::check( '200ml বোতলের দাম ৳1,125।', $perfume, array() );
+t_eq( array(), $r['blocked_values'], 'a size like 200ml is a quantity, not a price' );
+t_ok( in_array( 'UNVERIFIED_NUMBER', array_column( $r['warnings'], 'code' ), true ), 'unlisted size still warned' );
+t_eq( 'blocked', FactGuard::check( 'দাম 900 টাকা, 100ml।', $perfume, array() )['result'], 'price before a size is still checked' );
+t_eq( array(), FactGuard::check( 'দাম ৳1,125, ১২টি।', $perfume, array() )['blocked_values'], 'Bangla count "১২টি" next to a price cue is a quantity' );
+t_eq( array( '৪৫' ), FactGuard::check( 'দাম ৳1,125, টিকা ৪৫ টাকা।', $perfume, array() )['blocked_values'], '"টি" inside a word is not a unit' );

@@ -142,6 +142,11 @@ class TokenService {
 		return $wpdb->get_results( $wpdb->prepare( "SELECT id, user_id, token_prefix, label, created_at, expires_at, last_used_at, revoked_at FROM {$table} WHERE user_id = %d ORDER BY id DESC", $user_id ) );
 	}
 
+	public static function count_active() {
+		global $wpdb;
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . Db::t( 'tokens' ) . ' WHERE revoked_at IS NULL AND expires_at > %s', Db::now() ) );
+	}
+
 	public static function status_of( $row ) {
 		if ( null !== $row->revoked_at ) {
 			return 'revoked';

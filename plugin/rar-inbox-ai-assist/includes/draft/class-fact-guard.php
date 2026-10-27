@@ -24,6 +24,8 @@ class FactGuard {
 	const PRICE_CUE    = '/(৳|টাকা|টাঃ|tk\b|tk\.|taka|bdt|\/-|দাম|মূল্য|price|rate|রেট|mrp)/iu';
 	const PERCENT_CUE  = '/^\s?(%|শতাংশ|percent|পার্সেন্ট|পারসেন্ট)/iu';
 	const COMMERCIAL   = '/(discount|ডিসকাউন্ট|ছাড় দে|ছাড় দি|ছাড় পাব|কমিশন|commission|% off|ফ্রি দে|free gift)/iu';
+	/** A number directly followed by one of these is a quantity/size (100ml, 2 kg, 12 pcs), not a price. */
+	const MEASURE      = '/^\s?(ml|mL|ltr|litre|liter|l\b|g\b|gm|gram|kg|mg|oz|pcs|pc\b|piece|টি(?![\x{0980}-\x{09FF}])|পিস|মিলি|মিলিলিটার|লিটার|গ্রাম|কেজি)/u';
 	const UNIT_SYNONYM = array(
 		'carton' => array( 'carton', 'ctn', 'কার্টন', 'কাটুন' ),
 		'dozen'  => array( 'dozen', 'dz', 'ডজন' ),
@@ -89,18 +91,21 @@ class FactGuard {
 		$warnings   = array();
 		$blocked    = array();
 		$price_map  = self::price_units( $facts );
+		// Approved product names (e.g. "Jaguar Classic Blue 100ml") are facts: their digits are not prices.
+		$scan       = self::mask_product_names( (string) $reply, $facts );
 
-		foreach ( self::numbers( $reply ) as $n ) {
+		foreach ( self::numbers( $scan ) as $n ) {
 			list( $value, $raw, $pos, $len ) = $n;
-			list( $before, $after ) = self::windows( $reply, $pos, $len );
-			$is_price = (bool) preg_match( self::PRICE_CUE, $before . ' ' . $after );
-			$is_pct   = (bool) preg_match( self::PERCENT_CUE, $after );
-			$context  = trim( Util::substr( $reply, max( 0, $pos - 15 ), $len + 30 ) );
+			list( $before, $after ) = self::windows( $scan, $pos, $len );
+			$is_measure = (bool) preg_match( self::MEASURE, Util::substr( $scan, $pos + $len, 14 ) );
+			$is_price   = ! $is_measure && (bool) preg_match( self::PRICE_CUE, $before . ' ' . $after );
+			$is_pct     = (bool) preg_match( self::PERCENT_CUE, $after );
+			$context    = trim( Util::substr( $scan, max( 0, $pos - 15 ), $len + 30 ) );
 			if ( $is_price || $is_pct ) {
 				$allowed = $is_pct ? isset( $kb_percents[ $value ] ) : ( isset( $price_map[ $value ] ) || isset( $kb_prices[ $value ] ) );
 				if ( ! $allowed ) {
 					$blocked[] = $raw;
-				} elseif ( $is_price && isset( $price_map[ $value ] ) && ! self::unit_near( $reply, $pos, $len, $price_map[ $value ] ) ) {
+				} elseif ( $is_price && isset( $price_map[ $value ] ) && ! self::unit_near( $scan, $pos, $len, $price_map[ $value ] ) ) {
 					$warnings[] = array( 'code' => 'PRICE_UNIT_UNCLEAR', 'value' => $raw, 'context' => $context );
 				}
 				continue;
@@ -147,6 +152,24 @@ class FactGuard {
 			$out[ $k ] = self::without_ids( $v );
 		}
 		return $out;
+	}
+
+	/** Replace product names from the facts (longest first) with a digit-free placeholder. */
+	private static function mask_product_names( $text, array $facts ) {
+		$names = array();
+		foreach ( array( 'products', 'public_prices' ) as $group ) {
+			foreach ( isset( $facts[ $group ] ) ? $facts[ $group ] : array() as $p ) {
+				$name = isset( $p['product'] ) ? trim( (string) $p['product'] ) : '';
+				if ( Util::strlen( $name ) >= 4 && preg_match( '/[0-9০-৯]/u', $name ) ) {
+					$names[ $name ] = Util::strlen( $name );
+				}
+			}
+		}
+		arsort( $names );
+		foreach ( array_keys( $names ) as $name ) {
+			$text = preg_replace( '/' . preg_quote( $name, '/' ) . '/iu', '[product]', $text );
+		}
+		return $text;
 	}
 
 	/** Cue windows around a number (12 characters each side), cut at sentence boundaries. */

@@ -29,7 +29,7 @@ define( 'WP_DEBUG_DISPLAY', false );
 define( 'WP_ENVIRONMENT_TYPE', 'local' );
 define( 'WP_HTTP_BLOCK_EXTERNAL', true );
 define( 'DISABLE_WP_CRON', true );
-if ( getenv( 'IAA_PROVIDER' ) ) {
+if ( getenv( 'IAA_PROVIDER' ) && ! defined( 'RAR_IAA_PROVIDER' ) ) {
 	define( 'RAR_IAA_PROVIDER', getenv( 'IAA_PROVIDER' ) );
 }
 if ( ! defined( 'ABSPATH' ) ) {

@@ -42,3 +42,13 @@ test( 'text: edit distance', () => {
 	assert.equal( editDistance( 'আমি', 'আমরা' ), 2 );
 	assert.equal( editDistance( 'a'.repeat( 10 ), 'b'.repeat( 10 ), 5 ), 5 );
 } );
+
+test( 'sizes such as 100ml are quantities, not prices (mirrors FactGuard::MEASURE)', async () => {
+	const { numbers, editAdvisory } = await import( '../../extension/lib/text.js' );
+	const n = numbers( 'দাম ৳1,125, বোতল 200ml।' );
+	assert.equal( n.find( ( x ) => x.value === '200' ).price, false );
+	assert.equal( n.find( ( x ) => x.value === '1125' ).price, true );
+	const adv = editAdvisory( 'Jaguar 100ml: ৳1,125 প্রতি pcs।', 'Jaguar 100ml: ৳1,125 প্রতি pcs। 50ml-ও আছে।' );
+	assert.equal( adv.block, false );
+	assert.deepEqual( adv.notes.map( ( x ) => x.code ), [ 'NEW_NUMBER' ] );
+} );

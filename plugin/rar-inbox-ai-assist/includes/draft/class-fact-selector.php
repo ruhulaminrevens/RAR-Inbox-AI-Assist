@@ -30,6 +30,8 @@ class FactSelector {
 	 * @param object|null $link          Thread link row (with dealer/tier fields) or null.
 	 */
 	public static function select( $customer_text, $link ) {
+		// WooCommerce changes that waited too long for WP-Cron are synced before facts are read.
+		\RarIaa\Domain\WcCatalogue::maybe_sync_stale();
 		$tokens = Util::tokens( $customer_text );
 		$norm   = ' ' . Util::normalize( $customer_text ) . ' ';
 		$facts  = array(
@@ -146,6 +148,7 @@ class FactSelector {
 						'id'          => 'mrp:' . (int) $item->id,
 						'product'     => $item->product_name,
 						'unit'        => $item->unit,
+						'label'       => self::public_label( $item ),
 						'mrp_bdt'     => (float) $item->mrp_bdt,
 						'mrp_display' => '৳' . Util::bd_group( $item->mrp_bdt ),
 					);
@@ -160,10 +163,14 @@ class FactSelector {
 		return array( $facts, $meta );
 	}
 
-	/** Product names (and MRP) from every active list, de-duplicated by item code. */
+	/** "website price" for WooCommerce-synced items (the shop price anyone sees), else "MRP". */
+	private static function public_label( $item ) {
+		return isset( $item->list_source ) && 'woocommerce' === $item->list_source ? 'website price' : 'MRP';
+	}
+
+	/** Product names (and public prices) — the public website tier when it exists, else every active list; de-duplicated by item code. */
 	private static function public_catalogue() {
-		global $wpdb;
-		$rows = $wpdb->get_results( 'SELECT i.* FROM ' . Db::t( 'price_items' ) . ' i JOIN ' . Db::t( 'price_lists' ) . ' l ON l.id = i.price_list_id WHERE l.active_flag = 1 ORDER BY i.id ASC LIMIT 5000' );
+		$rows = PriceRepository::public_items();
 		$out  = array();
 		foreach ( $rows as $r ) {
 			if ( ! isset( $out[ $r->item_code ] ) ) {
@@ -301,7 +308,7 @@ class FactSelector {
 				$base['products'][] = array( 'id' => 'price:' . (int) $item->id, 'product' => $item->product_name, 'unit' => $item->unit, 'pack_size' => $item->pack_size );
 				$meta['supplied'][] = 'price:' . (int) $item->id;
 				if ( in_array( 'mrp', $kinds, true ) && Settings::get( 'allow_public_mrp' ) && null !== $item->mrp_bdt ) {
-					$base['public_prices'][] = array( 'id' => 'mrp:' . (int) $item->id, 'product' => $item->product_name, 'unit' => $item->unit, 'mrp_bdt' => (float) $item->mrp_bdt, 'mrp_display' => '৳' . Util::bd_group( $item->mrp_bdt ) );
+					$base['public_prices'][] = array( 'id' => 'mrp:' . (int) $item->id, 'product' => $item->product_name, 'unit' => $item->unit, 'label' => self::public_label( $item ), 'mrp_bdt' => (float) $item->mrp_bdt, 'mrp_display' => '৳' . Util::bd_group( $item->mrp_bdt ) );
 					$meta['supplied'][]      = 'mrp:' . (int) $item->id;
 				}
 			} else {

@@ -152,6 +152,7 @@ try {
 		assert.deepEqual( ids, [ 'professional', 'friendly', 'short' ] );
 		assert.ok( await hasText( panel, 'যাচাই হয়নি' ), 'unverified chip' );
 		assert.ok( await hasText( panel, '৯টা' ), 'approved hours fact used' );
+		assert.ok( await hasText( panel, 'AI: Anthropic' ), 'panel shows which AI answered' );
 		if ( process.env.IAA_E2E_SHOTS ) {
 			await page.screenshot( { path: join( process.env.IAA_E2E_SHOTS, 'safe-suggestions.png' ) } );
 		}
@@ -340,7 +341,7 @@ try {
 		await admin.type( '#user_login', seed.admin_login );
 		await admin.type( '#user_pass', seed.admin_pw );
 		await Promise.all( [ admin.waitForNavigation(), admin.click( '#wp-submit' ) ] );
-		for ( const slug of [ 'rar-iaa', 'rar-iaa-kb', 'rar-iaa-dealers', 'rar-iaa-prices', 'rar-iaa-tokens', 'rar-iaa-logs', 'rar-iaa-settings' ] ) {
+		for ( const slug of [ 'rar-iaa', 'rar-iaa-kb', 'rar-iaa-dealers', 'rar-iaa-dealers&tab=tiers', 'rar-iaa-prices', 'rar-iaa-prices&tab=products', 'rar-iaa-prices&tab=lists', 'rar-iaa-prices&action=import', 'rar-iaa-tokens', 'rar-iaa-logs', 'rar-iaa-settings', 'rar-iaa-settings&tab=limits' ] ) {
 			const r = await admin.goto( `${ seed.siteurl }/wp-admin/admin.php?page=${ slug }`, { waitUntil: 'networkidle0' } );
 			assert.equal( r.status(), 200, slug );
 			assert.ok( await admin.$( '.wrap h1' ), `${ slug } has a page heading` );
@@ -352,6 +353,16 @@ try {
 				.map( ( x ) => `${ x.id } (${ x.nodes.length }): ${ x.nodes.slice( 0, 2 ).map( ( n ) => n.target.join( ' ' ) ).join( ', ' ) }` ) );
 			a11yViews.push( 'admin ' + slug );
 			v.forEach( ( x ) => a11yIssues.push( `admin ${ slug }: ${ x }` ) );
+		}
+		// Plugins screen: "Dashboard | Settings" next to Deactivate.
+		await admin.goto( `${ seed.siteurl }/wp-admin/plugins.php`, { waitUntil: 'networkidle0' } );
+		const links = await admin.evaluate( () => [ ...document.querySelectorAll( 'tr[data-slug="rar-inbox-ai-assist"] .row-actions a' ) ].map( ( a ) => a.textContent.trim() ) );
+		assert.deepEqual( links.slice( 0, 2 ), [ 'Dashboard', 'Settings' ], 'plugin action links: ' + links.join( ' | ' ) );
+		if ( process.env.IAA_E2E_SHOTS ) {
+			for ( const [ name, slug ] of [ [ 'overview', 'rar-iaa' ], [ 'products', 'rar-iaa-prices' ], [ 'linked', 'rar-iaa-prices&tab=products' ], [ 'settings', 'rar-iaa-settings' ] ] ) {
+				await admin.goto( `${ seed.siteurl }/wp-admin/admin.php?page=${ slug }`, { waitUntil: 'networkidle0' } );
+				await admin.screenshot( { path: join( process.env.IAA_E2E_SHOTS, `admin-${ name }.png` ), fullPage: true } );
+			}
 		}
 		await admin.close();
 	} );

@@ -321,3 +321,17 @@ The single-draft v0.1 wording is superseded: `suggestions[]` contains 3 unique `
 
 **Privacy and reliability:** raw text, names, re-identification maps and unmasked replies are request-memory only: never in tables/transients/caches/logs/browser storage. A post-edit advisory checks unsupported commercial claims before Insert. Policy/permission clearance is required before reading/inserting into live Meta DOM. One AI call concurrent by default; a campaign-load/checkout benchmark gates WordPress-hosted provider calls.
 
+
+## 17. v0.2.0 additions (owner request, 27 Oct 2026)
+
+Requested by the owner after installing 0.1.0 on nabiad.com: WooCommerce already holds the products and prices, so they must be linked and kept in sync; free AI providers (Gemini and others) should be used as much as possible, with a paid API kept as backup; the admin and panel UI should look professional; the Plugins screen should offer Settings and Dashboard links.
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-24 | **WooCommerce link.** Every tier has a price rule: source *WooCommerce* (base = current or regular price, adjustment −90…+200 %, rounding none/1/5/10 ৳) or *CSV*. A public **Website price** tier (current price, no adjustment) is created automatically and supplies the public prices. Sync creates an auditable snapshot (activated automatically, previous kept for rollback) when something changed. Triggers: "Sync now", price/name/status/SKU change on product save (debounced 60 s), daily maintenance, and a draft-time fallback when a change waited more than 5 minutes. Stock-only changes never trigger a sync; stock is always read live. Hidden and excluded products are never linked. | P0 |
+| FR-25 | **Product fields.** WooCommerce product edit → General: "Inbox AI: other names" (aliases, \| separated), unit, pack size, exclude. | P1 |
+| FR-26 | **Several AI providers.** Anthropic, OpenAI, Google Gemini and any OpenAI-compatible API (Groq, OpenRouter …). One primary and an optional fallback, tried in order; the fallback is used for provider failures (quota/rate limit, outage, timeout, unusable output), never for our own budget/daily limits. Each provider has its own key, model and token prices. | P0 |
+| FR-27 | **Free tier.** Gemini and OpenAI-compatible providers may be marked "free tier" (cost 0; the daily limit still applies) only after the admin ticks an explicit consent that masked conversations may be used/reviewed by that provider. | P0 |
+| FR-28 | **Professional admin UI.** Brand header, section navigation, setup checklist, cards, empty states with next steps, tabbed settings; "Dashboard \| Settings" links on the Plugins screen. Panel connect/ready screens show numbered steps and which AI answered. | P1 |
+| BR-11 | Public (unverified) contacts may be told only the **website price** (the WooCommerce price anyone sees on the shop) or a CSV MRP, and only when "Public prices" is on. Dealer prices still require a linked active dealer. | P0 |
+| BR-12 | Digits inside an approved product name (e.g. "100ml") and numbers directly followed by a measurement unit are quantities, never prices; any other number next to a price cue must still equal an approved price. | P0 |
