@@ -26,7 +26,7 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 | T0.03 | Spike: composer insertion (no send) | P0 | T0.02 | TODO |
 | T0.04 | Plugin bootstrap skeleton | P0 | T0.01 | DONE |
 | T0.05 | Extension skeleton | P0 | T0.01 | IN_PROGRESS |
-| T0.06 | CI, tooling and pinned dev dependencies | P0 | T0.04, T0.05 | IN_PROGRESS |
+| T0.06 | CI, tooling and pinned dev dependencies | P0 | T0.04, T0.05 | DONE |
 | T0.07 | Version, provider and policy verification | P0 | T0.01 | TODO |
 | T1.01 | Schema installer and migrations | P0 | G1, T0.06 | DONE |
 | T1.02 | Integrity validation and tests | P0 | T1.01 | DONE |
@@ -137,7 +137,7 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 - **Outcome:** `.github/workflows/ci.yml` (PHP lint matrix 7.4/8.1/8.3/8.4, PHPCompatibility, `node --test`, link and token checks); `package.json` + `package-lock.json` (dev only: LinkeDOM, Playwright, axe-core — exact versions pinned and written into TRD §13); `composer.json` + `composer.lock` (dev only: PHPCS, PHPCompatibility); `scripts/check-links.py`, `scripts/check-tokens.py`, `scripts/package.py`.
 - **Verify:** CI run green on an empty-feature branch; `python3 scripts/check-links.py docs` exits 0.
 - **DoD:** TRD §13 rows for these tools changed from VERIFICATION REQUIRED to pinned versions.
-- **Status:** IN_PROGRESS · **Notes:** 2026-10-27: `.github/workflows/ci.yml`, `scripts/check_tokens.py`, `scripts/package.py`, `scripts/ci/setup-wp.sh`; dev deps pinned in package-lock (linkedom 0.18.14, puppeteer-core 25.16.0, @sparticuz/chromium 153.0.0, axe-core 4.10.3); PHPCS/PHPCompatibility pinned by commit in CI. CI not yet run on GitHub.
+- **Status:** DONE · **Notes:** 2026-10-27: `.github/workflows/ci.yml`, `scripts/check_tokens.py`, `scripts/package.py`, `scripts/ci/setup-wp.sh`; dev deps pinned in package-lock (linkedom 0.18.14, puppeteer-core 25.16.0, @sparticuz/chromium 153.0.0, axe-core 4.10.3); PHPCS/PHPCompatibility pinned by commit in CI. GitHub Actions on commit cbec157: all jobs green — lint/PHPCompatibility, php -l 7.4/8.1/8.3/8.4, extension unit, plugin suites on PHP 7.4 (no WooCommerce), 8.3 and 8.4 (WooCommerce 11.1.2) with MariaDB 10.11, E2E on 8.3, package build. The first two runs (51d20fd) failed in the PHP 8.3 plugin job; logs were not retrievable, and the re-run with diagnostics only passed — treat as possibly flaky and watch.
 
 ### T0.07 — Version, provider and policy verification
 - **Phase / priority:** 0 / P0 · **Depends:** T0.01 · **Reqs:** NFR-04, NFR-06, NFR-09, OD-7 · **Spec:** [TRD §8](04_TRD.md#8-third-party-integrations-and-configuration), §13
@@ -587,7 +587,7 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 | 2026-10-27 | T0.02, T0.03, T3.04, T3.08 | Live Meta inbox and owner presence needed; Meta permission evidence (T0.09) not recorded | Owner | Open — `live_inbox` stays OFF; selection/paste + Copy works |
 | 2026-10-27 | T0.07, T4.08 | No provider key in the build environment; no live AI call made | Owner | Open — owner adds key in wp-config and runs Test connection |
 | 2026-10-27 | T0.08, T4.07 | Hostinger campaign-load benchmark cannot run from the build environment | Owner | Open — keep 1 concurrent AI call |
-| 2026-10-27 | T0.06 | GitHub CI not yet executed | Owner/Claude | Open — runs on first push |
+| 2026-10-27 | T0.06 | First two CI runs failed in the PHP 8.3 plugin job (cause not visible); passed on re-run | Claude | Monitoring — failures now emit annotations |
 
 ## Traceability check (requirements → tasks)
 
