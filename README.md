@@ -15,6 +15,13 @@ Human-reviewed AI reply assistant for **Nabiad Distribution Limited** dealers an
 
 Not yet verified: live Meta inbox capture/insert (off by default; select/paste + Copy works), a real AI provider call, the Hostinger load benchmark and an independent security review. See [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
+## Download
+
+- **[Release v0.1.0 (pre-release)](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/tag/v0.1.0)** — `rar-inbox-ai-assist-0.1.0.zip` (WordPress plugin), `rar-inbox-ai-assist-extension-0.1.0.zip` (Chrome extension), `SHA256SUMS`.
+- [All releases](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases) · [Source ZIP of `main`](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/archive/refs/heads/main.zip)
+
+Do not use the source ZIP as a plugin: upload the release's plugin ZIP to WordPress and unzip the extension ZIP for Chrome.
+
 ## Install
 
 Full guide: **[docs/INSTALL.md](docs/INSTALL.md)**. In short: backup → upload the plugin ZIP → API key constant in `wp-config.php` → token prices + Test connection → LiteSpeed exclude `/wp-json/rar-iaa/` → load KB, dealers and price CSV → each staff member creates a token → Chrome "Load unpacked" → connect.
