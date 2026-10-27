@@ -544,7 +544,7 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 ### T5.01 — Packaging and release workflow
 - **Depends:** T4.01 – T4.07 · **Priority:** P0 · **Spec:** [TRD §15](04_TRD.md#15-deployment-cicd-and-environments)
 - **Verify:** `python3 scripts/package.py` produces both ZIPs + `SHA256SUMS.txt`; fresh install of the ZIPs on a clean local WP and Chrome passes T4.03 smoke subset.
-- **DoD:** pass. · **Status:** IN_PROGRESS · **Notes:** 2026-10-27: `python3 scripts/package.py` builds plugin ZIP, extension ZIP and `SHA256SUMS`; fresh install of both ZIPs on a clean WP 7.1.3 / MariaDB 10.11 (`PLUGIN_ZIP=… scripts/ci/setup-wp.sh`, `IAA_E2E_EXT_DIR=<unzipped extension>`) → 464/464 PHP checks, 21/21 E2E. Real-Chrome load-unpacked and GitHub release workflow not run.
+- **DoD:** pass. · **Status:** IN_PROGRESS · **Notes:** 2026-10-27: `python3 scripts/package.py` builds plugin ZIP, extension ZIP and `SHA256SUMS`; fresh install of both ZIPs on a clean WP 7.1.3 / MariaDB 10.11 (`PLUGIN_ZIP=… scripts/ci/setup-wp.sh`, `IAA_E2E_EXT_DIR=<unzipped extension>`) → 464/464 PHP checks, 21/21 E2E. `.github/workflows/release.yml` attaches the ZIPs when the owner publishes a release (this session cannot create releases). Real-Chrome load-unpacked not done.
 
 ### T5.02 — Backup + staging install
 - **Depends:** T5.01 · **Priority:** P0 · **Spec:** [TRD §16](04_TRD.md#16-backup-disaster-recovery-and-rollback)

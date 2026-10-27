@@ -1,0 +1,26 @@
+name: Release assets
+# Publish a release in the GitHub UI (tag vX.Y.Z on main); this job builds the
+# ZIPs from that tag and attaches them with SHA256SUMS.
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  assets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - name: Tag must match the plugin/extension version
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          ver=$(python3 -c "import json;print(json.load(open('extension/manifest.json'))['version'])")
+          [ "$tag" = "v$ver" ] || { echo "::error::Tag $tag does not match version v$ver"; exit 1; }
+      - name: Build ZIPs
+        run: python3 scripts/package.py --out dist
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.zip dist/SHA256SUMS --clobber --repo "${{ github.repository }}"
