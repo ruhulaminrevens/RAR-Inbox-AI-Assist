@@ -49,7 +49,7 @@ Read all six documents before any task. They override your own preferences and a
 
 - PHP namespace `RarIaa\`; prefix `rar_iaa_` (options, hooks, capabilities, tables `{prefix}rar_iaa_*`); one class per file `class-*.php`; repositories are the only `$wpdb` users.
 - Extension: plain ES modules, no bundler; only `content/inbox-adapter.js` and `content/composer.js` know Meta's DOM; only `lib/api.js` knows the REST API; CSS only via `--iaa-*` tokens.
-- REST namespace `rar-iaa/v1`; error codes from TRD §7 only.
+- REST namespace `rar-iaa/v1`; error codes from TRD §7 (plus the additions recorded in TRD §20) only.
 - Code, comments, commits and docs in English; user-facing panel text in Bangla per UI §9.
 - Version bump in `rar-inbox-ai-assist.php`, `extension/manifest.json` and `CHANGELOG.md` together.
 
@@ -57,13 +57,14 @@ Read all six documents before any task. They override your own preferences and a
 
 ```bash
 find plugin -name '*.php' -print0 | xargs -0 -n1 php -l      # PHP lint
-wp eval-file tests/php/smoke.php                             # plugin smoke (WP with plugin active)
-wp eval-file tests/php/integration/<file>.php                # one integration test
-node --test tests/ext                                        # extension unit tests
-npx playwright test tests/e2e                                # E2E (admin + mock inbox)
-python3 scripts/check-links.py docs                          # doc links
-python3 scripts/check-tokens.py                              # design-token rule
-python3 scripts/package.py                                   # build release ZIPs
+WP_LOAD=<site>/wp-load.php IAA_TEST_URL='http://127.0.0.1:8899/index.php?rest_route=/rar-iaa/v1' \
+  php tests/php/run-all.php [file-filter]                    # plugin unit + integration (server runs with IAA_PROVIDER=stub)
+node --test tests/ext/*.test.mjs                             # extension unit tests (glob; Node 22 rejects a bare directory)
+IAA_E2E_DOCROOT=<site> WP_LOAD=<site>/wp-load.php node tests/e2e/run.mjs   # E2E: panel + background + content + REST + axe
+bash scripts/ci/setup-wp.sh                                  # throwaway WP test site (see script header for env vars)
+python3 scripts/check_docs.py                                # doc links and gate wording
+python3 scripts/check_tokens.py                              # design-token rule
+python3 scripts/package.py                                   # build release ZIPs + SHA256SUMS
 ```
 
 ## Completion report template

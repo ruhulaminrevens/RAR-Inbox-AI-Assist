@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.0] — 2026-10-27
+
+First working build of the WordPress plugin and Chrome extension (pre-pilot).
+
+- Plugin: 13 tables (schema 2), 8 capabilities, revocable per-person tokens limited to `rar-iaa/v1`, rate/daily/monthly limits with atomic cost reservation, one AI call at a time, audit log, kill switch, retention cleanup.
+- Draft pipeline: masking → language → approved facts (KB, linked-dealer price list, stock buckets) → one provider call for 3 (or 4) suggestions → per-suggestion fact guard, holding reply, handoff → no raw text stored.
+- Providers: Anthropic Messages API and OpenAI Chat Completions; local-only stub for tests.
+- wp-admin: Overview with health checks, Knowledge base (maker-checker), Dealers & tiers, Price lists (CSV import, activate, rollback), Access tokens, Logs (CSV export), Settings.
+- Extension: side panel (Bangla UI, light/dark), select/paste + Copy by default, optional live capture/insert (admin switch, never sends), dealer link dialog, rewrite + undo, quick answers, diagnostics, Alt+Shift+D.
+- Tests: PHP unit/integration (incl. red-team, privacy, WooCommerce, lifecycle), extension unit tests, end-to-end with axe-core; CI workflow; packaging script.
+- Fixed during verification: icon markup parse error, literal "null" in panel views, unlabeled admin filters, listbox roles, guard cue crossing sentence boundaries.
+
 ## Architecture v0.2 — 2026-10-27
 
 - Publish PRD, app flow, design spec, TRD, schema and plan based on supplied v0.1 ZIP.

@@ -468,3 +468,24 @@ A **stub provider** (`RAR_IAA_PROVIDER=stub` only when `WP_ENVIRONMENT_TYPE` is 
 
 **Hosting:** compare campaign-like site p95 checkout/TTFB with 0 vs 1 in-flight AI call; >10% p95 regression or worker saturation requires isolated orchestration. Cost reservation must atomically preauthorise worst-case output tokens with settlement/crash reconciliation.
 
+
+## 20. Implementation record v0.1.0 (27 Oct 2026)
+
+Built on the owner's explicit instruction (AUTH, see [06_Plan](06_Plan.md#gates)) ahead of G1, using the safe defaults in [DECISIONS](DECISIONS.md). Each item below is either a **documented deviation** or a detail the v0.2 text left open. All need owner acknowledgement at G1.
+
+| Area | As built | Why |
+|---|---|---|
+| Prompt | `PROMPT_VERSION = 'p2'` (three variants, optional fourth, one provider call) | v0.2 replaced the single-draft `p1` |
+| Draft response | adds `audience` (`dealer` \| `unverified`), `default_variant_id: null`, `trimmed`, `warnings[]`, `usage{today, daily_limit}` | panel needs audience to label dealer vs public answers; no default selection (US-03) |
+| Error codes | adds `CONFLICT` (409, row_version clash), `REQUEST_IN_PROGRESS` and `REQUEST_ALREADY_PROCESSED` (409, idempotency metadata only, no text) | §6 step 2 / §19 idempotency |
+| Guard warning codes | adds `PRICE_UNIT_UNCLEAR` (listed price without its unit nearby) and `COMMERCIAL_CLAIM` (discount/commission wording absent from facts) | §19 price guard (unit, discount) |
+| Guard number classes | price-like = cue (`৳ টাকা tk taka bdt /- দাম মূল্য price rate রেট mrp`) within 12 characters **in the same sentence**; must equal a listed price/MRP or a price written in an approved KB answer. Percent must equal a percent in an approved KB answer. Dates, pack sizes and customer numbers never authorise either | closes F-03 bypasses found in testing |
+| Locks | MySQL/MariaDB `GET_LOCK`; on SQLite (local tests only) a lease row `lock:<name>` in `rate_buckets` | SQLite has no `GET_LOCK` |
+| Cost reservation | table `cost_reservations` (see [Schema §8](05_Schema.md#14-cost_reservations-v010)) + `usage_daily.reserved_cost_usd_micros`; reserve 2 × worst case (call + one repair), TTL 120 s, recovered by `Budget::release_expired()` | resolves OD-14 technically |
+| Admin | server-rendered wp-admin pages + `admin-post.php` handlers (capability + nonce); **no admin REST endpoints**; tokens created and shown once on the Access tokens page | smaller attack surface |
+| Stub provider | only when `WP_ENVIRONMENT_TYPE` is `local`/`development` **and** `RAR_IAA_PROVIDER=stub`; scripted via option `rar_iaa_stub_next` (tests only); answers KB and price questions from supplied facts | deterministic tests; refused in production |
+| Live inbox | admin setting `live_inbox` (default OFF). OFF: selection/paste + Copy only; content scripts refuse capture/insert. ON only after T0.09 evidence | v0.2 Meta gate |
+| Extension auth headers | sends both `Authorization: Bearer` and `X-IAA-Token` | LiteSpeed/Apache setups that strip `Authorization` |
+| Icons | Lucide 1.62.0 inner SVG markup (wrapper removed), incl. `wand-sparkles` for Rewrite | |
+| Test tooling | puppeteer-core 25.16.0 + @sparticuz/chromium 153.0.0 + axe-core 4.10.3 instead of Playwright (its browser CDN is unreachable from the build environment); E2E replaces `chrome.*` with `tests/e2e/chrome-mock.js` because a headless shell cannot load extensions. PHP tests run with `php tests/php/run-all.php` (no WP-CLI needed) | |
+| Verified environments | WordPress 7.1.3, PHP 8.3.6, SQLite and MariaDB 10.11.14, WooCommerce 11.1.2 (HPOS on/off). PHP 7.4/8.1/8.4 and Chrome ≥ 116 with the unpacked extension: static checks only until CI / manual install | |

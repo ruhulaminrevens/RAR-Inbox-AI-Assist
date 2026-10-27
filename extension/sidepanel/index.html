@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="bn">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Inbox AI Assist</title>
+	<link rel="stylesheet" href="tokens.css">
+	<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+	<header class="iaa-header">
+		<span class="iaa-dot" id="iaa-dot" aria-hidden="true"></span>
+		<span class="iaa-header__title">Inbox AI Assist</span>
+		<button class="iaa-btn iaa-btn--ghost iaa-btn--sm" id="iaa-quick" type="button" aria-label="দ্রুত উত্তর (Quick answers)"></button>
+		<button class="iaa-btn iaa-btn--ghost iaa-btn--sm" id="iaa-settings" type="button" aria-label="সেটিংস ও ডায়াগনস্টিক"></button>
+	</header>
+	<main class="iaa-main" id="iaa-app" aria-busy="true"></main>
+	<div id="iaa-actionbar"></div>
+	<div id="iaa-toast" aria-live="polite"></div>
+	<div class="iaa-sr" id="iaa-live" aria-live="polite"></div>
+	<script type="module" src="panel.js"></script>
+</body>
+</html>

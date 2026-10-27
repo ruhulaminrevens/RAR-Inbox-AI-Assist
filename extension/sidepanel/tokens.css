@@ -1,0 +1,97 @@
+/* Design tokens — UI Spec §2–§4, §8. The ONLY place colours, sizes and fonts are defined for the panel. */
+@font-face { font-family: 'Hind Siliguri'; font-weight: 400; font-display: swap; src: url(../fonts/hind-siliguri-bengali-400-normal.woff2) format('woff2'); unicode-range: U+0951-0952,U+0964-0965,U+0980-09FE,U+200C-200D,U+20B9,U+25CC; }
+@font-face { font-family: 'Hind Siliguri'; font-weight: 500; font-display: swap; src: url(../fonts/hind-siliguri-bengali-500-normal.woff2) format('woff2'); unicode-range: U+0951-0952,U+0964-0965,U+0980-09FE,U+200C-200D,U+20B9,U+25CC; }
+@font-face { font-family: 'Hind Siliguri'; font-weight: 600; font-display: swap; src: url(../fonts/hind-siliguri-bengali-600-normal.woff2) format('woff2'); unicode-range: U+0951-0952,U+0964-0965,U+0980-09FE,U+200C-200D,U+20B9,U+25CC; }
+@font-face { font-family: 'Hind Siliguri'; font-weight: 400; font-display: swap; src: url(../fonts/hind-siliguri-latin-400-normal.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF; }
+@font-face { font-family: 'Hind Siliguri'; font-weight: 500; font-display: swap; src: url(../fonts/hind-siliguri-latin-500-normal.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF; }
+@font-face { font-family: 'Hind Siliguri'; font-weight: 600; font-display: swap; src: url(../fonts/hind-siliguri-latin-600-normal.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF; }
+
+:root {
+	--iaa-bg: #F6F8F7;
+	--iaa-surface: #FFFFFF;
+	--iaa-surface-2: #EEF3F0;
+	--iaa-border: #D5DFD9;
+	--iaa-border-strong: #6F8679;
+	--iaa-text: #13221B;
+	--iaa-text-muted: #51645A;
+	--iaa-text-disabled: #7D8F86;
+	--iaa-primary: #0E7A4E;
+	--iaa-primary-hover: #0B6440;
+	--iaa-on-primary: #FFFFFF;
+	--iaa-secondary: #0B2E22;
+	--iaa-on-secondary: #FFFFFF;
+	--iaa-accent: #C8962E;
+	--iaa-on-accent: #1A1205;
+	--iaa-success: #1E6B45;
+	--iaa-success-bg: #E7F5EC;
+	--iaa-warning: #8A4B00;
+	--iaa-warning-bg: #FFF4E0;
+	--iaa-danger: #B42318;
+	--iaa-danger-bg: #FDECEA;
+	--iaa-info: #1D5FA8;
+	--iaa-info-bg: #E8F0FA;
+	--iaa-focus: #1D5FA8;
+
+	--iaa-font: 'Hind Siliguri', system-ui, 'Segoe UI', 'Nirmala UI', sans-serif;
+	--iaa-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+	--iaa-fs-xs: 12px;
+	--iaa-fs-sm: 13px;
+	--iaa-fs-md: 14px;
+	--iaa-fs-lg: 16px;
+	--iaa-fs-xl: 18px;
+	--iaa-fs-2xl: 20px;
+	--iaa-fw-regular: 400;
+	--iaa-fw-medium: 500;
+	--iaa-fw-semibold: 600;
+
+	--iaa-space-1: 4px;
+	--iaa-space-2: 8px;
+	--iaa-space-3: 12px;
+	--iaa-space-4: 16px;
+	--iaa-space-5: 20px;
+	--iaa-space-6: 24px;
+	--iaa-space-8: 32px;
+
+	--iaa-radius-sm: 6px;
+	--iaa-radius-md: 10px;
+	--iaa-radius-lg: 14px;
+	--iaa-radius-pill: 999px;
+	--iaa-shadow-sm: 0 1px 2px rgba(11, 46, 34, .08);
+	--iaa-shadow-md: 0 4px 16px rgba(11, 46, 34, .12);
+	--iaa-backdrop: rgba(6, 16, 12, .5);
+
+	--iaa-dur-fast: 120ms;
+	--iaa-dur-base: 180ms;
+	--iaa-ease: cubic-bezier(.2, .7, .2, 1);
+
+	--iaa-header-h: 48px;
+	--iaa-actionbar-h: 64px;
+	--iaa-control-sm: 32px;
+	--iaa-control-md: 40px;
+	--iaa-content-max: 560px;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		--iaa-bg: #0B1712; --iaa-surface: #10211A; --iaa-surface-2: #163026; --iaa-border: #24382F; --iaa-border-strong: #5E7A6D;
+		--iaa-text: #E8F1EC; --iaa-text-muted: #A3B6AC; --iaa-text-disabled: #6F8379;
+		--iaa-primary: #34C17F; --iaa-primary-hover: #4FD394; --iaa-on-primary: #06120C; --iaa-secondary: #06100C; --iaa-on-secondary: #E8F1EC;
+		--iaa-accent: #E2B04F; --iaa-on-accent: #1A1205;
+		--iaa-success: #4CC38A; --iaa-success-bg: #12301F; --iaa-warning: #F0B44C; --iaa-warning-bg: #33250B;
+		--iaa-danger: #F2867B; --iaa-danger-bg: #3A1714; --iaa-info: #7FB2F0; --iaa-info-bg: #132741; --iaa-focus: #7FB2F0;
+		--iaa-shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --iaa-shadow-md: 0 4px 16px rgba(0, 0, 0, .5);
+	}
+}
+:root[data-theme="dark"] {
+	--iaa-bg: #0B1712; --iaa-surface: #10211A; --iaa-surface-2: #163026; --iaa-border: #24382F; --iaa-border-strong: #5E7A6D;
+	--iaa-text: #E8F1EC; --iaa-text-muted: #A3B6AC; --iaa-text-disabled: #6F8379;
+	--iaa-primary: #34C17F; --iaa-primary-hover: #4FD394; --iaa-on-primary: #06120C; --iaa-secondary: #06100C; --iaa-on-secondary: #E8F1EC;
+	--iaa-accent: #E2B04F; --iaa-on-accent: #1A1205;
+	--iaa-success: #4CC38A; --iaa-success-bg: #12301F; --iaa-warning: #F0B44C; --iaa-warning-bg: #33250B;
+	--iaa-danger: #F2867B; --iaa-danger-bg: #3A1714; --iaa-info: #7FB2F0; --iaa-info-bg: #132741; --iaa-focus: #7FB2F0;
+	--iaa-shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --iaa-shadow-md: 0 4px 16px rgba(0, 0, 0, .5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	:root { --iaa-dur-fast: 0ms; --iaa-dur-base: 0ms; }
+}

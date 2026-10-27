@@ -1,0 +1,46 @@
+/* RAR Inbox AI Assist — admin. Token values copied from extension/sidepanel/tokens.css (UI Spec §2, §10). */
+.iaa-wrap {
+	--iaa-surface: #FFFFFF;
+	--iaa-surface-2: #EEF3F0;
+	--iaa-border: #D5DFD9;
+	--iaa-text: #13221B;
+	--iaa-text-muted: #51645A;
+	--iaa-primary: #0E7A4E;
+	--iaa-success: #1E6B45;
+	--iaa-success-bg: #E7F5EC;
+	--iaa-warning: #8A4B00;
+	--iaa-warning-bg: #FFF4E0;
+	--iaa-danger: #B42318;
+	--iaa-danger-bg: #FDECEA;
+	--iaa-info: #1D5FA8;
+	--iaa-info-bg: #E8F0FA;
+	--iaa-radius-md: 10px;
+	--iaa-radius-pill: 999px;
+	--iaa-space-2: 8px;
+	--iaa-space-3: 12px;
+	--iaa-space-4: 16px;
+}
+.iaa-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--iaa-space-3); margin: var(--iaa-space-4) 0; }
+.iaa-card { background: var(--iaa-surface); border: 1px solid var(--iaa-border); border-radius: var(--iaa-radius-md); padding: var(--iaa-space-4); }
+.iaa-card__label { color: var(--iaa-text-muted); font-size: 13px; }
+.iaa-card__value { color: var(--iaa-text); font-size: 20px; font-weight: 600; margin-top: 4px; }
+.iaa-card__sub { color: var(--iaa-text-muted); font-size: 12px; margin-top: 4px; }
+.iaa-badge { display: inline-block; padding: 2px 8px; border-radius: var(--iaa-radius-pill); font-size: 12px; font-weight: 500; background: var(--iaa-info-bg); color: var(--iaa-info); }
+.iaa-badge--approved, .iaa-badge--active { background: var(--iaa-success-bg); color: var(--iaa-success); }
+.iaa-badge--draft { background: var(--iaa-info-bg); color: var(--iaa-info); }
+.iaa-badge--archived { background: var(--iaa-surface-2); color: var(--iaa-text-muted); }
+.iaa-badge--warned { background: var(--iaa-warning-bg); color: var(--iaa-warning); }
+.iaa-badge--blocked { background: var(--iaa-danger-bg); color: var(--iaa-danger); }
+.iaa-field-error { color: var(--iaa-danger); margin: 4px 0 0; }
+.iaa-error-list { margin: 0 0 8px 16px; list-style: disc; }
+.iaa-filters { margin: var(--iaa-space-3) 0; display: flex; flex-wrap: wrap; gap: var(--iaa-space-2); align-items: center; }
+.iaa-actions-row { display: flex; flex-wrap: wrap; gap: var(--iaa-space-2); margin: var(--iaa-space-3) 0; align-items: center; }
+.iaa-actions-row form { margin: 0; }
+.button.iaa-button-danger { color: var(--iaa-danger); border-color: var(--iaa-danger); }
+.iaa-ok { color: var(--iaa-success); font-weight: 600; }
+.iaa-bad { color: var(--iaa-danger); font-weight: 600; }
+.iaa-pre { white-space: pre-wrap; background: var(--iaa-surface-2); padding: var(--iaa-space-3); border-radius: var(--iaa-radius-md); max-width: 900px; overflow-x: auto; }
+.iaa-inline { display: inline-block; margin-right: var(--iaa-space-3); }
+.iaa-log td, .iaa-log th { font-size: 12px; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.iaa-token-once input { font-family: ui-monospace, Consolas, monospace; }
