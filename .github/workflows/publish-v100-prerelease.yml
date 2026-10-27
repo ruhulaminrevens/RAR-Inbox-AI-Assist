@@ -1,0 +1,53 @@
+name: Publish v1.0.0 pre-release downloads
+
+# One-time, idempotent release for the already CI-tested v1.0.0 build.
+# Creates versioned direct ZIP assets; does NOT grant production approval.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-v100-prerelease.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.repository == 'ruhulaminrevens/RAR-Inbox-AI-Assist'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify matching application versions and package
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,re,pathlib
+          root=pathlib.Path('.')
+          plugin=(root/'plugin/rar-inbox-ai-assist/rar-inbox-ai-assist.php').read_text()
+          ext=json.loads((root/'extension/manifest.json').read_text())
+          assert ext['version']=='1.0.0'
+          assert re.search(r'^\s*\* Version:\s*1\.0\.0\s*$',plugin,re.M)
+          PY
+          python3 scripts/package.py --out dist
+          (cd dist && sha256sum -c SHA256SUMS)
+          test -f dist/rar-inbox-ai-assist-1.0.0.zip
+          test -f dist/rar-inbox-ai-assist-extension-1.0.0.zip
+      - name: Create v1.0.0 pre-release and direct download assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "v1.0.0 release already exists; leaving existing assets unchanged."
+            exit 0
+          fi
+          gh release create v1.0.0 \
+            dist/rar-inbox-ai-assist-1.0.0.zip \
+            dist/rar-inbox-ai-assist-extension-1.0.0.zip \
+            dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "RAR Inbox AI Assist v1.0.0 — Release Candidate" \
+            --prerelease \
+            --notes "RELEASE CANDIDATE — NOT YET APPROVED FOR PRODUCTION. Installable WordPress plugin + Chrome extension in separate ZIPs, with SHA256SUMS. Back up your WordPress site and test on staging; see docs/INSTALL.md and docs/PRODUCTION_READINESS.md. Only human staff send messages. Live Meta auto-capture/insert requires separate permission and testing."
