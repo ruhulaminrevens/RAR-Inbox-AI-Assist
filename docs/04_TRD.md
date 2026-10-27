@@ -512,3 +512,15 @@ Keys: `RAR_IAA_GEMINI_API_KEY`, `RAR_IAA_COMPAT_API_KEY` constants or the encryp
 **Packaging.** ZIP entries carry the build time (not a fixed date): OPcache with `validate_timestamps` keeps serving old code after an upgrade that preserves ZIP timestamps if they never change (found in testing).
 
 **Extension.** Requests use `redirect: 'manual'` so the token is never forwarded through a redirect; a redirect is reported as `REDIRECT`. On connect, if the typed site redirects, the www / non-www twin is tried and saved when it answers. Panel shows "AI: … (ফ্রি) · ব্যাকআপ AI ব্যবহৃত" under suggestions.
+
+## 22. v0.2.1 changes (27 Oct 2026)
+
+Implements PRD §18 (FR-29, FR-10a, BR-13, BR-14, NFR-13).
+
+- **`POST /drafts` body** gains optional `staff_note` (string ≤ 200 characters or null; control characters folded to spaces; invalid UTF-8 or longer → `422 VALIDATION_FAILED` with `fields.staff_note`). The server masks it with the conversation's masker, appends it to the text used by `FactSelector::select()`, and passes it to `PromptBuilder::suggestions()`, which adds a `STAFF NOTE (from our staff member, not the customer)` block. It is not written to `draft_log` (even with masked logging), options or transients, and is not returned. Rewrites do not take a note.
+- **Prompt** `PROMPT_VERSION` = `p4`: rule 3 forbids example sizes/quantities not in FACTS; rule 12 says a staff note helps understanding but is not a fact and is not mentioned in the reply.
+- **Language** (`Language::detect_recent()`, §6 step 7): last customer message decides, except a short (≤ 4 words) English-looking one, which follows the previous two customer messages; Banglish = 2 Banglish words, or 1 that is ≥ ⅓ of the words.
+- **Handoff** (§6 step 15): rule `unknown_dealer_price` only when a price was asked, no tier list, no public price **and at least one product was recognised**. A model `needs_human` with reason `unknown_dealer_price` is ignored when no product was recognised.
+- **Provider chain** (amends §21): with a fallback the primary's deadline is 12 s (`PRIMARY_CAP`) instead of the full 20 s; the fallback is tried when ≥ 6 s remain (`FALLBACK_MIN`, was 10). Within one provider a retry/repair is skipped when < 3 s of its deadline remain, and the previous attempt's error is reported. HTTP errors read `AI provider error: <provider type> (<meaning>).` via `ProviderFactory::http_error_message()`; timeouts state the seconds waited. No body, key or model internals.
+- **Admin pill** shows `(not set)` for a selected provider that cannot be built (missing key/model).
+- **Extension**: `state.js noteFor()` (conversation-scoped, single line, 200 chars); `panel.js` adds the field to S-03 and `staff_note` to selection/capture/paste requests.

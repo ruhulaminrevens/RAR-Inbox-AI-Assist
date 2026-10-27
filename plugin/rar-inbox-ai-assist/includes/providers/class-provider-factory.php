@@ -111,4 +111,26 @@ class ProviderFactory {
 	private static function stub_mode() {
 		return defined( 'RAR_IAA_PROVIDER' ) && 'stub' === RAR_IAA_PROVIDER && StubProvider::allowed();
 	}
+
+	/**
+	 * Admin-readable provider HTTP error (v0.2.1): the provider's own error type plus what it usually
+	 * means. Never includes the response body, key or model internals.
+	 */
+	public static function http_error_message( $code, $type ) {
+		$code = (int) $code;
+		if ( 401 === $code || 403 === $code ) {
+			$hint = 'the API key was rejected or is not allowed to use this model';
+		} elseif ( 404 === $code ) {
+			$hint = 'model not found, check the model name';
+		} elseif ( 400 === $code ) {
+			$hint = 'request rejected, check the model name and API key';
+		} elseif ( 429 === $code ) {
+			$hint = 'rate or free-tier limit reached, try again later';
+		} elseif ( $code >= 500 ) {
+			$hint = 'the provider is overloaded or down, try again in a minute';
+		} else {
+			$hint = 'HTTP ' . $code;
+		}
+		return 'AI provider error: ' . sanitize_key( (string) $type ) . ' (' . $hint . ').';
+	}
 }

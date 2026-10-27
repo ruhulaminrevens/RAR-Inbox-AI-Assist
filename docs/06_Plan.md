@@ -593,6 +593,19 @@ Requested by the owner after installing 0.1.0 (PRD §17). Evidence: local WP 7.1
 | T6.05 | Guard: sizes in product names are not prices (BR-12) | DONE | Found by T6.01 (perfume "100ml" next to a price was blocked). `unit/guard.php` 54/54, red-team 33/33 unchanged; JS mirror test. |
 | T6.06 | Upgrade 0.1.0 → 0.2.0 with data | DONE | 0.1.0 (commit d8e9ba3) installed with KB, tier, dealer, CSV list, token, legacy prices; replaced in place under a running server with OPcache → schema 3, data kept, token valid, legacy price read, drafts work. |
 
+## Phase 7 — v0.2.1 owner feedback (27 Oct 2026)
+
+Found on the live inbox (PRD §18). Staff note approved by the owner in chat on 27 Oct 2026 (OD-17). Evidence: `php tests/php/run-all.php` → 635/635 on MariaDB + WooCommerce, 571/571 on SQLite, 633/633 on the 0.2.0 ZIP site upgraded in place to the 0.2.1 ZIP (tokens, KB, dealer, price list kept; schema 3); `node --test tests/ext/*.test.mjs` → 24/24; `node tests/e2e/run.mjs` → 22/22 on all three sites (packaged extension on the ZIP site). New checks in `m_v021.php` (31) fail on the 0.2.0 code. **Not verified:** live Gemini/Groq calls, live Meta inbox.
+
+| ID | Task | Status | Notes |
+|---|---|---|---|
+| T7.01 | Language from recent messages (FR-10a) | DONE | 2026-10-27: `unit/language.php` (new cases: "Price koto?", short "Price?/Hello/ok" after Bangla/Banglish, long English stays en); `m_v021.php` Bangla + "Price?" → bn reply and log. |
+| T7.02 | No handoff for an unknown product (BR-13) | DONE | 2026-10-27: `m_v021.php` unknown product → no handoff (rule and model flag), other model reasons kept; `e_drafts_http.php` known product unverified → `unknown_dealer_price` unchanged. |
+| T7.03 | Staff note field (FR-29) | DONE | 2026-10-27: `m_v021.php` note matches the product (price/mrp facts), never stored with masked logging on (scan of all plugin tables + options), prompt block/rule, validation 422 (> 200, non-string), null accepted; ext unit `noteFor`; E2E step (note → product recognised, Bangla reply, no badge without product, "নতুন মেসেজ" clears it, axe 0 serious/critical). |
+| T7.04 | Prompt p4: no example quantities (BR-14) | DONE | 2026-10-27: prompt text test in `m_v021.php`; model behaviour not verifiable without a live provider. |
+| T7.05 | Primary time cap + readable provider errors + pill (NFR-13) | DONE | 2026-10-27: `m_v021.php` primary failing after 12.5 s → fallback answers within 20 s (fails on 0.2.0 code); error text cases. Live Gemini/Groq behaviour still owner-verified only. |
+| T7.06 | Release 0.2.1 | DONE | 2026-10-27: versions bumped together; results recorded in the Phase 7 evidence line below. |
+
 ## Blockers log
 
 | Date | Task | Blocker | Owner | Resolution |

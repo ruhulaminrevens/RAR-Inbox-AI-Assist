@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { insertCheck, isStale, outcomeFor, advisoryFor, nextVariant, messagesFromText, errorText, warningText } from '../../extension/sidepanel/state.js';
+import { insertCheck, isStale, outcomeFor, advisoryFor, nextVariant, messagesFromText, errorText, warningText, noteFor } from '../../extension/sidepanel/state.js';
 import { parseKey } from '../../extension/lib/ids.js';
 
 const URL1 = 'https://business.facebook.com/latest/inbox/all?asset_id=1&business_id=9&selected_item_id=t_1';
@@ -52,4 +52,14 @@ test( 'text helpers and copy', () => {
 	assert.match( errorText( 'RATE_LIMITED', { retry_after: 12 } ), /12/ );
 	assert.match( errorText( 'SOMETHING_NEW' ), /SOMETHING_NEW/ );
 	assert.match( warningText( { code: 'UNVERIFIED_NUMBER', value: '50', source: 'customer' } ), /কাস্টমারের/ );
+} );
+
+test( 'staff note: only for the conversation it was typed for, single line, max 200 (FR-29)', () => {
+	const k1 = parseKey( URL1 ).key;
+	const k2 = parseKey( URL2 ).key;
+	assert.equal( noteFor( { text: '  Jaguar Classic Red\n100ml ', conv: k1 }, k1 ), 'Jaguar Classic Red 100ml' );
+	assert.equal( noteFor( { text: 'Jaguar', conv: k1 }, k2 ), null, 'other conversation → no note' );
+	assert.equal( noteFor( { text: '   ', conv: k1 }, k1 ), null, 'blank → null' );
+	assert.equal( noteFor( { text: 'x'.repeat( 300 ), conv: null }, null ).length, 200 );
+	assert.equal( noteFor( null, k1 ), null );
 } );

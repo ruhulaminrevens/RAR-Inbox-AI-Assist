@@ -269,6 +269,32 @@ try {
 		await panel.evaluate( () => [ ...document.querySelectorAll( '.iaa-menu__item' ) ].find( ( e ) => e.textContent === 'নতুন মেসেজ' ).click() );
 	} );
 
+	await step( 'unknown product: Bangla reply, no manager badge; staff note names the product (v0.2.1)', async () => {
+		await inbox.evaluate( () => {
+			document.getElementById( 'last-customer' ).textContent = 'Price koto?';
+		} );
+		await clickText( panel, 'কথোপকথন থেকে সাজেশন' );
+		await panel.waitForSelector( '[data-variant="short"]', { timeout: 30000 } );
+		assert.equal( await panel.$eval( '[data-variant="professional"] .iaa-card__text', ( e ) => e.getAttribute( 'lang' ) ), 'bn', '"Price koto?" answered in Bangla' );
+		assert.equal( await hasText( panel, 'ডিলার যাচাই ছাড়া দাম' ), false, 'no manager badge for an unknown product' );
+		await panel.$eval( '#iaa-actionbar button[aria-label="আরও"]', ( e ) => e.click() );
+		await panel.evaluate( () => [ ...document.querySelectorAll( '.iaa-menu__item' ) ].find( ( e ) => e.textContent === 'নতুন মেসেজ' ).click() );
+		await panel.waitForSelector( '#iaa-note' );
+		await a11y( panel, 'S-03 ready with note field' );
+		await panel.type( '#iaa-note', 'E2E-NOTE A TO Z Jumbo' );
+		await clickText( panel, 'কথোপকথন থেকে সাজেশন' );
+		await panel.waitForSelector( '[data-variant="short"]', { timeout: 30000 } );
+		const text = await panel.$eval( '[data-variant="professional"] .iaa-card__text', ( e ) => e.textContent );
+		assert.ok( ! /1,250|১,২৫০|1250/.test( text ), 'still no dealer price when unlinked: ' + text );
+		assert.ok( await hasText( panel, 'ডিলার যাচাই ছাড়া দাম' ), 'recognised product without public price → manager badge' );
+		await panel.$eval( '#iaa-actionbar button[aria-label="আরও"]', ( e ) => e.click() );
+		await panel.evaluate( () => [ ...document.querySelectorAll( '.iaa-menu__item' ) ].find( ( e ) => e.textContent === 'নতুন মেসেজ' ).click() );
+		assert.equal( await panel.$eval( '#iaa-note', ( e ) => e.value ), '', '"নতুন মেসেজ" clears the note' );
+		await inbox.evaluate( () => {
+			document.getElementById( 'last-customer' ).textContent = 'Jumbo carton er dam koto?';
+		} );
+	} );
+
 	await step( 'link dealer dialog: search by code, link this conversation', async () => {
 		await clickText( panel, 'ডিলার লিংক' );
 		await panel.waitForSelector( 'dialog[open] input[type=search]' );
@@ -313,7 +339,7 @@ try {
 		await new Promise( ( r ) => setTimeout( r, 500 ) );
 		const db = php( 'check-db.php' );
 		assert.deepEqual( db.hits, [], 'customer text found in tables: ' + db.hits.join( ', ' ) );
-		assert.equal( db.drafts, 3 );
+		assert.equal( db.drafts, 5 );
 		assert.ok( db.outcomes.includes( 'inserted' ), 'insert outcome recorded (first outcome wins)' );
 	} );
 

@@ -498,3 +498,7 @@ Added by `dbDelta` (in place, no data change):
 | price_lists | `source` | varchar(12) `'csv'` | `csv` \| `woocommerce` (synced snapshot) |
 
 For synced lists `file_sha256` is the hash of the generated rows (change detection), `mrp_bdt` holds the website price and `stock_mode` is `wc`. Options: `rar_iaa_wc_sync_pending`, `rar_iaa_wc_sync_state`, `rar_iaa_provider_tests` (no secrets, no conversation text). Product meta (WooCommerce): `_rar_iaa_aliases`, `_rar_iaa_unit`, `_rar_iaa_pack_size`, `_rar_iaa_exclude`. New settings keys: `gemini_model`, `compat_base_url`, `compat_model`, `fallback_provider`, `prices` (per provider), `free_providers`, `free_tier_consent`, `wc_auto_sync`, `wc_default_unit`, `wc_categories`; the 0.1.0 pair `price_in/out_usd_per_mtok` is still read for the provider that was selected in 0.1.0 until per-provider prices are saved.
+
+## 16. v0.2.1 (no schema change)
+
+Schema stays 3. The staff note (`staff_note`, FR-29) is request-only: masked, used for the provider call and discarded; no table, column, option or transient holds it.

@@ -64,13 +64,13 @@ class GeminiProvider implements Provider {
 		$ms    = (int) round( ( microtime( true ) - $start ) * 1000 );
 		if ( is_wp_error( $res ) ) {
 			$timeout = false !== stripos( $res->get_error_message(), 'time' );
-			return new \WP_Error( $timeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_ERROR', $timeout ? 'AI provider timed out.' : 'Could not reach the AI provider.', array( 'status' => $timeout ? 504 : 502, 'retryable' => true, 'latency_ms' => $ms ) );
+			return new \WP_Error( $timeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_ERROR', $timeout ? 'AI provider timed out (no answer in ' . (int) $opts['timeout'] . ' s).' : 'Could not reach the AI provider.', array( 'status' => $timeout ? 504 : 502, 'retryable' => true, 'latency_ms' => $ms ) );
 		}
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		$json = json_decode( (string) wp_remote_retrieve_body( $res ), true );
 		if ( $code < 200 || $code >= 300 ) {
 			$type = is_array( $json ) && isset( $json['error']['status'] ) && is_scalar( $json['error']['status'] ) ? (string) $json['error']['status'] : 'http_' . $code;
-			return new \WP_Error( 'PROVIDER_ERROR', 'AI provider error: ' . sanitize_key( $type ), array( 'status' => 502, 'provider_status' => $code, 'retryable' => $code >= 500, 'quota' => 429 === $code, 'latency_ms' => $ms ) );
+			return new \WP_Error( 'PROVIDER_ERROR', ProviderFactory::http_error_message( $code, $type ), array( 'status' => 502, 'provider_status' => $code, 'retryable' => $code >= 500, 'quota' => 429 === $code, 'latency_ms' => $ms ) );
 		}
 		if ( ! empty( $json['promptFeedback']['blockReason'] ) ) {
 			return new \WP_Error( 'PROVIDER_BAD_OUTPUT', 'The AI provider refused the request (' . sanitize_key( (string) $json['promptFeedback']['blockReason'] ) . ').', array( 'status' => 502, 'latency_ms' => $ms ) );

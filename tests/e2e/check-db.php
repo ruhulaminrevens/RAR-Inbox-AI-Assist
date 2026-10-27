@@ -2,7 +2,7 @@
 /** E2E privacy check: no customer text in any plugin table. Prints JSON. */
 require __DIR__ . '/../php/bootstrap.php';
 global $wpdb;
-$needles = array( 'khola koyta', 'Assalamu alaikum', '01712', 'time kore', 'dam koto' );
+$needles = array( 'khola koyta', 'Assalamu alaikum', '01712', 'time kore', 'dam koto', 'E2E-NOTE', 'Price koto' );
 $hits    = array();
 foreach ( RarIaa\Db::TABLES as $short ) {
 	foreach ( $wpdb->get_results( 'SELECT * FROM ' . RarIaa\Db::t( $short ), ARRAY_A ) as $row ) {

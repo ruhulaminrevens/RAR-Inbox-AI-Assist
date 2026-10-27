@@ -95,7 +95,7 @@ Format: **Route → Access → Entry state → Components → User actions → V
 - **Entry:** inbox tab active; idle.
 - **Components:** StatusBar (user, connected dot), DealerChip ("ডিলার: —" or "D-014 · Rahim Traders · Tier A"), primary button "খসড়া তৈরি করুন" (`Alt+Shift+D`), secondary "নির্বাচিত লেখা ব্যবহার" , ghost "পেস্ট করুন", link "দ্রুত উত্তর" (S-11), ⚙ (S-12), last request ID if any.
 - **On entry:** the panel asks the content script for the current conversation key (URL only, no DOM read) and, if present, calls `GET /threads/current/link` (raw key in the `X-IAA-Thread` header; the server computes the hash) to show the DealerChip. This is the only automatic call and it reads no message text.
-- **Actions:** Draft → capture (§6). Link dealer → S-09. Selection/Paste → S-10.
+- **Actions:** Draft → capture (§6). Link dealer → S-09. Selection/Paste → S-10. Optional "পণ্য / নোট" field (v0.2.1, FR-29): text sent as `staff_note` with the next request for this conversation; cleared by "নতুন মেসেজ" or another conversation; never stored.
 - **Validation:** capture must yield ≥ 1 customer text message, else inline "কাস্টমারের কোনো লেখা পাওয়া যায়নি" and no API call (AC-01.3).
 - **API:** `POST /drafts`.
 - **Next:** S-04.

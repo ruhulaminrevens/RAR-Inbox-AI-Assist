@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.1] — 2026-10-27
+
+Fixes from the owner's first live use on nabiad.com (product photo + "Price koto?").
+
+- **Reply language**: "Price koto?" is Banglish (one Banglish word in a two-word message is enough), and a short English-looking last message ("Price?", "Hello", "ok") follows the customer's earlier messages — these got English replies before.
+- **No manager badge for an unknown product**: when a price is asked but no product is recognised, the suggestions ask which product; the "ম্যানেজারকে জানান — ডিলার যাচাই ছাড়া দাম" handoff now appears only when a recognised product's price cannot be given.
+- **Panel "পণ্য / নোট" field** (owner-approved): type the product the customer sent as a photo (e.g. "Jaguar Classic Red 100ml"); it is masked, used to find the product facts, never stored, and cleared by "নতুন মেসেজ".
+- **No invented example sizes** ("1kg, 500ml") in suggestions (prompt p4).
+- **Free primary + fallback**: a slow or failing primary (e.g. Gemini free tier) is cut off at 12 s so the fallback (e.g. Groq) still answers within the 20 s budget; test results explain provider errors (overloaded, limit reached, model not found, key rejected).
+- **Admin**: the "AI: primary → fallback" pill shows "(not set)" for a provider without a key/model.
+
 ## [0.2.0] — 2026-10-27
 
 Owner requests after installing 0.1.0 on nabiad.com.

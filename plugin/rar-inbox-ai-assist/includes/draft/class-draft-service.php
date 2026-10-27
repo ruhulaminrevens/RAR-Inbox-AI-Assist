@@ -30,7 +30,12 @@ class DraftService {
 	const MAX_MESSAGES   = 20;
 	const MAX_MSG_CHARS  = 2000;
 	const MAX_TOTAL      = 12000;
+	const MAX_NOTE_CHARS = 200;
 	const TIMEOUT        = 20;
+	/** With a fallback configured the primary gets at most this many seconds (v0.2.1)… */
+	const PRIMARY_CAP    = 12;
+	/** …so the fallback is still tried when at least this many seconds remain. */
+	const FALLBACK_MIN   = 6;
 	const IDEM_TTL       = 600;
 	const REWRITE_MODES  = array( 'shorter', 'polite', 'formal', 'bn', 'en' );
 
@@ -165,7 +170,7 @@ class DraftService {
 
 	private function validate_create( array $body ) {
 		$fields  = array();
-		$allowed = array( 'source', 'messages', 'options', 'adapter', 'customer_display_name' );
+		$allowed = array( 'source', 'messages', 'options', 'adapter', 'customer_display_name', 'staff_note' );
 		$extra   = array_diff( array_keys( $body ), $allowed );
 		if ( $extra ) {
 			$fields['_'] = 'Unknown fields: ' . implode( ', ', $extra );
@@ -215,6 +220,21 @@ class DraftService {
 		if ( Util::strlen( $name ) > 100 ) {
 			$fields['customer_display_name'] = 'Max 100 characters.';
 		}
+		// Staff note (v0.2.1, FR-29): what the customer means, e.g. the product in a photo. Masked, never stored.
+		$note = '';
+		if ( isset( $body['staff_note'] ) && null !== $body['staff_note'] ) {
+			if ( ! is_string( $body['staff_note'] ) ) {
+				$fields['staff_note'] = 'Text or null.';
+			} else {
+				$note = preg_replace( '/[\x00-\x1F\x7F]+/u', ' ', $body['staff_note'] );
+				$note = null === $note ? '' : trim( $note );
+				if ( null === preg_replace( '/x/u', '', $body['staff_note'] ) ) {
+					$fields['staff_note'] = 'Text must be valid UTF-8.';
+				} elseif ( Util::strlen( $note ) > self::MAX_NOTE_CHARS ) {
+					$fields['staff_note'] = 'Max ' . self::MAX_NOTE_CHARS . ' characters.';
+				}
+			}
+		}
 		$adapter = array( 'version' => null, 'strategy' => null );
 		if ( isset( $body['adapter'] ) && is_array( $body['adapter'] ) ) {
 			$adapter['version']  = isset( $body['adapter']['version'] ) ? substr( sanitize_text_field( (string) $body['adapter']['version'] ), 0, 30 ) : null;
@@ -229,7 +249,7 @@ class DraftService {
 			array_shift( $clean );
 			$trimmed++;
 		}
-		return array( 'source' => $source, 'messages' => $clean, 'language' => $lang, 'name' => $name, 'adapter' => $adapter, 'trimmed' => $trimmed );
+		return array( 'source' => $source, 'messages' => $clean, 'language' => $lang, 'name' => $name, 'adapter' => $adapter, 'trimmed' => $trimmed, 'note' => $note );
 	}
 
 	/** Atomic idempotency claim: metadata only (key hash, status, draft id), never response text. */
@@ -301,15 +321,16 @@ class DraftService {
 			}
 		}
 		$recent_text = implode( "\n", array_slice( $recent_masked, 0, 3 ) );
+		$note        = '' !== $in['note'] ? $masker->mask( $in['note'], $names ) : '';
 
-		$detected            = Language::detect( $last_customer );
+		$detected            = Language::detect_recent( $customer );
 		list( $lang, $latin ) = Language::reply_language( $detected, $in['language'], Settings::get( 'banglish_reply_script' ) );
 		$greeted             = Language::greeted_salam( $last_customer );
 
-		list( $facts, $meta ) = FactSelector::select( $recent_text, $link );
+		list( $facts, $meta ) = FactSelector::select( '' !== $note ? $recent_text . "\n" . $note : $recent_text, $link );
 		$count                = (int) Settings::get( 'suggestion_count' );
 		$expected             = PromptBuilder::variant_ids( $count );
-		$prompt               = PromptBuilder::suggestions( $facts, $masked, $lang, $latin, Settings::get( 'reply_digits' ), $count );
+		$prompt               = PromptBuilder::suggestions( $facts, $masked, $lang, $latin, Settings::get( 'reply_digits' ), $count, $note );
 
 		$call = $this->call_provider( $provider, $prompt, $expected, $meta['supplied'] );
 		if ( is_wp_error( $call ) ) {
@@ -318,7 +339,9 @@ class DraftService {
 		}
 
 		$rule_reason    = HandoffRules::match( implode( "\n", array_slice( $customer, -2 ) ) );
-		$price_withheld = $meta['price_asked'] && null === $meta['price_list_id'] && empty( $facts['public_prices'] );
+		// A manager is needed only when a recognised product's price cannot be given. When no product
+		// was recognised the right answer is to ask which product (v0.2.1), not a handoff.
+		$price_withheld = $meta['price_asked'] && null === $meta['price_list_id'] && empty( $facts['public_prices'] ) && ! empty( $facts['products'] );
 		$suggestions    = array();
 		$summary        = array();
 		foreach ( $call['items'] as $s ) {
@@ -405,12 +428,13 @@ class DraftService {
 		$error  = null;
 		$last   = $chain[0];
 		foreach ( $chain as $i => $provider ) {
-			if ( $i > 0 && ( microtime( true ) - $start ) > self::TIMEOUT - 10 ) {
+			if ( $i > 0 && ( microtime( true ) - $start ) > self::TIMEOUT - self::FALLBACK_MIN ) {
 				break;
 			}
-			$last = $provider;
-			$rid  = 0 === $i ? $this->request_id : Util::uuid4();
-			$r    = $this->call_one( $provider, $rid, $prompt, $expected, $supplied, $start );
+			$last     = $provider;
+			$rid      = 0 === $i ? $this->request_id : Util::uuid4();
+			$deadline = ( $i + 1 < count( $chain ) ) ? self::PRIMARY_CAP : self::TIMEOUT;
+			$r        = $this->call_one( $provider, $rid, $prompt, $expected, $supplied, $start, $deadline );
 			$totals['in']   += $r['input_tokens'];
 			$totals['out']  += $r['output_tokens'];
 			$totals['ms']   += $r['provider_ms'];
@@ -454,7 +478,7 @@ class DraftService {
 	 * One provider: reserve worst-case cost (the call plus one repair), take a concurrency slot,
 	 * call (one retry for transient errors, one repair for invalid JSON), settle the budget.
 	 */
-	private function call_one( $provider, $reservation_id, array $prompt, array $expected, array $supplied, $start ) {
+	private function call_one( $provider, $reservation_id, array $prompt, array $expected, array $supplied, $start, $deadline = self::TIMEOUT ) {
 		$max_out            = (int) Settings::get( 'max_output_tokens' );
 		$est_in             = Util::strlen( $prompt['system'] . $prompt['user'] ) + 200;
 		list( $p_in, $p_out ) = ProviderFactory::price( $provider );
@@ -482,15 +506,22 @@ class DraftService {
 			$attempts = 0;
 			$current  = $prompt;
 			$repaired = false;
+			$pending  = null;
 			$first    = microtime( true );
 			while ( true ) {
 				$attempts++;
-				$remaining = self::TIMEOUT - (int) ( microtime( true ) - $start );
-				$r         = $provider->complete( $current, array( 'max_tokens' => $max_out, 'timeout' => max( 5, $remaining ) ) );
+				$remaining = $deadline - (int) ( microtime( true ) - $start );
+				if ( $attempts > 1 && $remaining < 3 ) {
+					// No time left for the retry or repair: report what the previous attempt returned.
+					$error = $pending;
+					break;
+				}
+				$r = $provider->complete( $current, array( 'max_tokens' => $max_out, 'timeout' => max( 3, $remaining ) ) );
 				if ( is_wp_error( $r ) ) {
 					$data = $r->get_error_data();
 					$ms  += isset( $data['latency_ms'] ) ? (int) $data['latency_ms'] : 0;
 					if ( ! empty( $data['retryable'] ) && $attempts < 2 && ( microtime( true ) - $first ) < 8 ) {
+						$pending = $r;
 						continue;
 					}
 					$error = $r;
@@ -509,6 +540,7 @@ class DraftService {
 					break;
 				}
 				$repaired = true;
+				$pending  = new \WP_Error( 'PROVIDER_BAD_OUTPUT', 'The AI answer was not in the required format.', array( 'status' => 502 ) );
 				$current  = array(
 					'system' => $prompt['system'],
 					'user'   => $prompt['user'] . "\n\nYour previous answer was invalid. It must be ONLY the JSON object with exactly " . count( $expected ) . ' suggestions with variant_id values: ' . implode( ', ', $expected ) . '.',
@@ -529,7 +561,11 @@ class DraftService {
 		if ( 'blocked' === $guard['result'] ) {
 			$reply = HoldingReply::text( $s['language'], $greeted );
 		}
-		$handoff = HandoffRules::decide( $rule_reason, $s['needs_human'], $s['handoff_reason'], $price_withheld );
+		$needs = $s['needs_human'];
+		if ( $needs && 'unknown_dealer_price' === $s['handoff_reason'] && empty( $facts['products'] ) ) {
+			$needs = false; // Nothing to price yet: the reply asks which product.
+		}
+		$handoff = HandoffRules::decide( $rule_reason, $needs, $s['handoff_reason'], $price_withheld );
 		return array(
 			'variant_id' => $s['variant_id'],
 			'reply'      => $reply,

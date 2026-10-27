@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       RAR Inbox AI Assist
  * Description:       Fact-checked reply suggestions for Meta Business Suite inbox staff. Approved knowledge base, dealer price lists, masking, budget limits. Never sends messages.
- * Version:           0.2.0
+ * Version:           0.2.1
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            Nabiad Distribution Limited
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'RAR_IAA_VERSION', '0.2.0' );
+define( 'RAR_IAA_VERSION', '0.2.1' );
 define( 'RAR_IAA_SCHEMA_VERSION', 3 );
 define( 'RAR_IAA_FILE', __FILE__ );
 define( 'RAR_IAA_DIR', __DIR__ );

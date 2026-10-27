@@ -53,13 +53,13 @@ class AnthropicProvider implements Provider {
 		$ms    = (int) round( ( microtime( true ) - $start ) * 1000 );
 		if ( is_wp_error( $res ) ) {
 			$timeout = false !== stripos( $res->get_error_message(), 'timed out' ) || false !== stripos( $res->get_error_message(), 'timeout' );
-			return new \WP_Error( $timeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_ERROR', $timeout ? 'AI provider timed out.' : 'Could not reach the AI provider.', array( 'status' => $timeout ? 504 : 502, 'retryable' => true, 'latency_ms' => $ms ) );
+			return new \WP_Error( $timeout ? 'PROVIDER_TIMEOUT' : 'PROVIDER_ERROR', $timeout ? 'AI provider timed out (no answer in ' . (int) $opts['timeout'] . ' s).' : 'Could not reach the AI provider.', array( 'status' => $timeout ? 504 : 502, 'retryable' => true, 'latency_ms' => $ms ) );
 		}
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		$json = json_decode( (string) wp_remote_retrieve_body( $res ), true );
 		if ( $code < 200 || $code >= 300 ) {
 			$type = is_array( $json ) && isset( $json['error']['type'] ) ? (string) $json['error']['type'] : 'http_' . $code;
-			return new \WP_Error( 'PROVIDER_ERROR', 'AI provider error: ' . $type, array( 'status' => 502, 'provider_status' => $code, 'retryable' => $code >= 500 || 529 === $code, 'quota' => 429 === $code, 'latency_ms' => $ms ) );
+			return new \WP_Error( 'PROVIDER_ERROR', ProviderFactory::http_error_message( $code, $type ), array( 'status' => 502, 'provider_status' => $code, 'retryable' => $code >= 500 || 529 === $code, 'quota' => 429 === $code, 'latency_ms' => $ms ) );
 		}
 		$text = '';
 		if ( is_array( $json ) && isset( $json['content'] ) && is_array( $json['content'] ) ) {

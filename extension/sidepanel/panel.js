@@ -10,7 +10,7 @@ import { editDistance, squash } from '../lib/text.js';
 import {
 	VARIANT_LABELS, HANDOFF_LABELS, GUARD_LABELS, ERROR_ACTIONS,
 	warningText, errorText, isStale, insertCheck, selectedSuggestion, advisoryFor,
-	outcomeFor, messagesFromText, nextVariant, aiNote,
+	outcomeFor, messagesFromText, nextVariant, aiNote, noteFor,
 } from './state.js';
 
 /* ================================================================== State */
@@ -30,6 +30,7 @@ const S = {
 	error: null,
 	lastInput: null, // { body, conv }
 	pasteOpen: false,
+	note: { text: '', conv: null }, // staff note (product in a photo); only for the conversation it was typed for
 	gen: 0,
 	quick: { q: '', results: [], lang: 'bn' },
 	busy: false,
@@ -223,7 +224,7 @@ async function fromSelection() {
 		toast( 'কাস্টমারের মেসেজটি মাউস দিয়ে select করুন, তারপর আবার চাপুন।', true );
 		return;
 	}
-	await createDraft( { source: 'selection', messages: messagesFromText( r.text ) }, r.key );
+	await createDraft( withNote( { source: 'selection', messages: messagesFromText( r.text ) } ), r.key );
 }
 
 async function fromConversation() {
@@ -232,7 +233,7 @@ async function fromConversation() {
 		toast( 'কথোপকথন পড়া যায়নি। মেসেজ select করে "নির্বাচিত লেখা" ব্যবহার করুন।', true );
 		return;
 	}
-	await createDraft( { source: 'capture', messages: r.messages, adapter: r.adapter }, r.key );
+	await createDraft( withNote( { source: 'capture', messages: r.messages, adapter: r.adapter } ), r.key );
 }
 
 async function fromPaste( text ) {
@@ -241,7 +242,18 @@ async function fromPaste( text ) {
 		toast( 'কাস্টমারের লেখা পেস্ট করুন।', true );
 		return;
 	}
-	await createDraft( { source: 'paste', messages: msgs }, conv() );
+	await createDraft( withNote( { source: 'paste', messages: msgs } ), conv() );
+}
+
+function convKey() {
+	const c = conv();
+	return c ? c.key : null;
+}
+
+/** Adds the staff note (if any, for this conversation) to a new request body. */
+function withNote( body ) {
+	const note = noteFor( S.note, convKey() );
+	return note ? { ...body, staff_note: note } : body;
 }
 
 async function createDraft( body, convAtCapture, idem = null ) {
@@ -638,6 +650,7 @@ function viewReady() {
 			out.push( btn( 'নির্বাচিত লেখা থেকে সাজেশন', fromSelection, 'primary', 'sparkles' ) );
 		}
 	}
+	out.push( noteField() );
 	out.push( h( 'details', { open: ! onInbox || S.pasteOpen ? true : null, ontoggle: ( e ) => { S.pasteOpen = e.target.open; } },
 		h( 'summary', { class: 'iaa-label' }, 'পেস্ট করে সাজেশন' ),
 		h( 'div', { class: 'iaa-stack' }, pasteArea, btn( 'পেস্ট করা লেখা থেকে সাজেশন', () => fromPaste( pasteArea.value ), onInbox ? 'secondary' : 'primary', 'clipboard-paste' ),
@@ -646,6 +659,20 @@ function viewReady() {
 		out.push( alertBox( 'info', 'info', h( 'p', {}, 'নিরাপদ মোড: সাজেশন কপি করে Meta-র রিপ্লাই বক্সে পেস্ট করুন। স্বয়ংক্রিয়ভাবে বসানো বন্ধ আছে।' ) ) );
 	}
 	return out;
+}
+
+/** Optional "product / note" field (FR-29): e.g. the product the customer sent as a photo. */
+function noteField() {
+	const key = convKey();
+	const current = noteFor( S.note, key ) || '';
+	const input = h( 'input', { class: 'iaa-input', id: 'iaa-note', type: 'text', maxlength: '200', lang: 'bn', autocomplete: 'off', value: current, placeholder: 'যেমন: ছবির পণ্য — Jaguar Classic Red 100ml', 'aria-describedby': 'iaa-note-help' } );
+	input.addEventListener( 'input', () => {
+		S.note = { text: input.value, conv: key };
+	} );
+	return h( 'div', { class: 'iaa-stack' },
+		h( 'label', { class: 'iaa-label', for: 'iaa-note' }, 'পণ্য / নোট (ঐচ্ছিক)' ),
+		input,
+		h( 'p', { class: 'iaa-help', id: 'iaa-note-help' }, 'কাস্টমার ছবি পাঠালে পণ্যের নাম লিখুন। নোট AI-কে বোঝাতে সাহায্য করে; দাম আসে শুধু অনুমোদিত তথ্য থেকে। নোট সেভ হয় না।' ) );
 }
 
 /* ---------------- S-04 Generating */
@@ -834,6 +861,7 @@ function moreMenu() {
 		[ 'বাদ দিন: অন্য', () => doReject( 'other' ) ],
 		[ 'নতুন মেসেজ', () => {
 			S.draft = null;
+			S.note = { text: '', conv: null };
 			go( 'ready' );
 		} ],
 	], S.busy, 'আরও' );
