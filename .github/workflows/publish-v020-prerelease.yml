@@ -1,0 +1,45 @@
+name: Publish v0.2.0 pre-pilot download assets
+
+# A one-time, idempotent bootstrap for the first installable pre-release.
+# Later versions use the existing release.yml workflow via GitHub Releases.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-v020-prerelease.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.repository == 'ruhulaminrevens/RAR-Inbox-AI-Assist'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check version and build installable packages
+        run: |
+          set -euo pipefail
+          test "$(python3 -c "import json; print(json.load(open('extension/manifest.json'))['version'])")" = '0.2.0'
+          python3 scripts/package.py --out dist
+          cd dist
+          sha256sum -c SHA256SUMS
+      - name: Create a labelled pre-release if absent
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v0.2.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "v0.2.0 release already exists; no overwrite performed."
+            exit 0
+          fi
+          gh release create v0.2.0 \
+            dist/rar-inbox-ai-assist-0.2.0.zip \
+            dist/rar-inbox-ai-assist-extension-0.2.0.zip \
+            dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "RAR Inbox AI Assist v0.2.0 — Pre-pilot" \
+            --prerelease \
+            --notes "PRE-PILOT TEST BUILD (NOT PRODUCTION APPROVED). Includes separately installable WordPress plugin and Chrome extension ZIPs plus SHA-256 checksums. Use staging first and follow docs/INSTALL.md. The Meta live inbox capture/insert mode is not verified or authorised; use selected text/paste and Copy. Real provider credentials, Hostinger load testing and independent security review remain outstanding."
