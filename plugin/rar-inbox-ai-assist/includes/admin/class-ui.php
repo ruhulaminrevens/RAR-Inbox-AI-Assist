@@ -45,7 +45,7 @@ class Ui {
 		$current = self::get( 'page', 'rar-iaa' );
 		$service = Settings::service_enabled();
 		echo '<div class="wrap iaa-wrap">';
-		echo '<div class="iaa-top"><div class="iaa-brand"><span class="iaa-logo dashicons dashicons-format-chat" aria-hidden="true"></span><div><div class="iaa-brand__name">Inbox AI Assist</div><div class="iaa-brand__meta">v' . esc_html( RAR_IAA_VERSION ) . ' · ' . esc_html( (string) Settings::get( 'business_name' ) ) . '</div></div></div>';
+		echo '<div class="iaa-top"><div class="iaa-brand"><span class="iaa-logo dashicons dashicons-format-chat" aria-hidden="true"></span><div><div class="iaa-brand__name">Inbox AI Assist</div><div class="iaa-brand__meta">v' . esc_html( RAR_IAA_VERSION ) . '</div></div></div>';
 		echo '<div class="iaa-top__right">' . self::ai_pill() . '<span class="iaa-pill ' . ( $service ? 'iaa-pill--ok' : 'iaa-pill--bad' ) . '"><span class="iaa-dot" aria-hidden="true"></span>' . ( $service ? 'Service active' : 'Service stopped' ) . '</span></div></div>'; // phpcs:ignore -- built from escaped parts.
 		echo '<nav class="iaa-nav" aria-label="Inbox AI Assist sections">';
 		foreach ( self::NAV as $slug => $item ) {

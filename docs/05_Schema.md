@@ -502,3 +502,7 @@ For synced lists `file_sha256` is the hash of the generated rows (change detecti
 ## 16. v0.2.1 (no schema change)
 
 Schema stays 3. The staff note (`staff_note`, FR-29) is request-only: masked, used for the provider call and discarded; no table, column, option or transient holds it.
+
+## 17. 1.0.0 (no schema change)
+
+Schema stays 3. Settings: `business_name` default changes to `''` (empty = site title); fresh installs with WooCommerce start with `allow_public_mrp = 1`. Extension storage adds `iaa.onboarded` (bool, per browser).

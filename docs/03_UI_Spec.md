@@ -230,3 +230,10 @@ Use `iaa-suggestion-card` in a vertical stack down to 320 px usable width, exist
 ## 13. v0.2.1 panel addition
 
 - **Staff note field** (S-03, FR-29): existing `.iaa-label` + `.iaa-input` (one line, `maxlength` 200, `lang="bn"`) + `.iaa-help` text linked by `aria-describedby`. Label "পণ্য / নোট (ঐচ্ছিক)", placeholder "যেমন: ছবির পণ্য — Jaguar Classic Red 100ml", help "কাস্টমার ছবি পাঠালে পণ্যের নাম লিখুন। নোট AI-কে বোঝাতে সাহায্য করে; দাম আসে শুধু অনুমোদিত তথ্য থেকে। নোট সেভ হয় না।" No new tokens or components.
+
+## 14. 1.0.0 panel and admin polish
+
+- **Connect (S-01):** visible *ওয়েবসাইট* field (required, `https://` added when missing) above *Token*; *API base* stays under Advanced. Permission screen: title "সাইটে সংযোগের অনুমতি দিন", primary **অনুমতি দিন**, ghost "অন্য সাইট / নতুন token".
+- **Ready (S-03):** dealer/customer chip → how-to steps (folded into a `details` "কীভাবে ব্যবহার করবেন" after the first suggestion) → staff note → action buttons → paste.
+- **Diagnostics (S-12):** `dl.iaa-kv` key/value card (two columns: muted key, value); request log as `.iaa-log` on `--iaa-surface-2`. Uses existing tokens only.
+- **Admin:** brand meta shows only `v{version}`. Health status `.iaa-info` (info colour, `dashicons-info-outline`) beside `.iaa-ok` / `.iaa-bad`. Every text input has `type="text"` so WordPress admin styles apply.

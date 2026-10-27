@@ -19,7 +19,7 @@ export const HANDOFF_LABELS = {
 	discount_negotiation: 'ছাড় / দরদাম',
 	complaint: 'অভিযোগ',
 	damage_return: 'ভাঙা / ফেরত',
-	unknown_dealer_price: 'ডিলার যাচাই ছাড়া দাম',
+	unknown_dealer_price: 'দাম নিশ্চিত করে জানাতে হবে',
 	missing_facts: 'তথ্য নেই',
 	other: 'অন্য কারণ',
 };
@@ -63,7 +63,11 @@ export function errorText( code, data = {} ) {
 		case 'CLIENT_TIMEOUT':
 			return 'সংযোগ সমস্যা। আবার চেষ্টা করুন।';
 		case 'REDIRECT':
-			return 'সাইটের ঠিকানাটি অন্য ঠিকানায় চলে যায়। উন্নত (Advanced) অংশে সঠিক ঠিকানা দিন, যেমন https://www.nabiad.com';
+			return 'সাইটের ঠিকানাটি অন্য ঠিকানায় চলে যায়। সঠিক ঠিকানা দিন, যেমন https://www.example.com';
+		case 'SITE_REQUIRED':
+			return 'আপনার ওয়েবসাইটের ঠিকানা দিন, যেমন https://www.example.com';
+		case 'PERMISSION':
+			return 'এই সাইটে সংযোগের অনুমতি দেওয়া হয়নি।';
 		case 'RATE_LIMITED':
 			return `একটু অপেক্ষা করুন (${ data.retry_after || 10 } সেকেন্ড)।`;
 		case 'BUSY':

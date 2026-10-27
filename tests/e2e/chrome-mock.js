@@ -38,7 +38,16 @@
 		bus.make = ( role ) => ( {
 			runtime: {
 				id: 'ext',
-				getManifest: () => ( { version: '0.1.0' } ),
+				getManifest: () => {
+					// The real manifest of the extension under test (served at /ext/).
+					if ( ! bus.manifest ) {
+						const x = new XMLHttpRequest();
+						x.open( 'GET', '/ext/manifest.json', false );
+						x.send();
+						bus.manifest = JSON.parse( x.responseText );
+					}
+					return bus.manifest;
+				},
 				onInstalled: { addListener() {} },
 				onStartup: { addListener() {} },
 				onMessage: { addListener: ( fn ) => bus[ role === 'background' ? 'background' : role === 'content' ? 'content' : 'panel' ].push( fn ) },
@@ -72,7 +81,7 @@
 			},
 			sidePanel: { setPanelBehavior: async () => {}, open: async () => {} },
 			commands: { getAll: async () => [ { name: 'draft', shortcut: 'Alt+Shift+D' } ], onCommand: { addListener: ( fn ) => bus.onCommand.push( fn ) } },
-			permissions: { request: async () => true },
+			permissions: { request: async () => true, contains: async () => true },
 		} );
 		window.__bus = bus;
 		window.chrome = bus.make( 'background' );

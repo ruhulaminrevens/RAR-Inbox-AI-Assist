@@ -22,6 +22,7 @@ Plugin/extension v0.1.0 (27 Oct 2026) implements every safe default below so the
 | OD-15 | Dealer price per tier from WooCommerce | Tier rule = CSV until the admin sets "WooCommerce ± %"; public website tier = current price | Products & prices → Price rule per tier | OPEN |
 | OD-16 | Free AI tiers (Gemini / compatible) for masked conversations | Off; requires explicit consent box and "free tier" flag per provider | Settings → AI providers | OPEN |
 | OD-17 | Staff note for photos (product name typed by staff) | Optional, request-only, masked, never stored | Panel "পণ্য / নোট" field (v0.2.1) | APPROVED by owner 2026-10-27 (chat) |
+| OD-18 | Audience of the product | Any business in Bangladesh (Bangla panel, ৳, Bangla/Banglish/English replies); nothing company-specific | 1.0.0: generic business name, any site, retail-first defaults | APPROVED by owner 2026-10-28 (chat: "যেকোনো business, bangladesh") |
 | OD-14 | Atomic cost reservation storage/cleanup | Transactional reservation ledger, precise DDL needed | `cost_reservations` table, [Schema §14](05_Schema.md#14-cost_reservations-v010) | DDL written; sign-off OPEN |
 
 G2 is **pre-pilot** only; G3 follows pilot and owner go/no-go. No permission from Meta can be substituted by owner risk acceptance.

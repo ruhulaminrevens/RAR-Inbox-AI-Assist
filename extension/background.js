@@ -88,23 +88,26 @@ const HANDLERS = {
 	async status() {
 		const cfg = await api.config();
 		if ( ! cfg.token ) {
-			return { connected: false, site: cfg.site };
+			return { connected: false, site: cfg.site, hasToken: false };
 		}
 		const res = await api.request( 'GET', '/me' );
 		await remember( 'me', res );
-		return { connected: res.ok, site: cfg.site, me: res.data, error: res.error };
+		return { connected: res.ok, site: cfg.site, hasToken: true, me: res.data, error: res.error };
 	},
 
 	async connect( { token, site, base } ) {
 		if ( ! TOKEN_RE.test( String( token || '' ) ) ) {
 			return { ok: false, error: { code: 'TOKEN_FORMAT', message: 'Token format is wrong' } };
 		}
-		let s = ( site || DEFAULT_SITE ).replace( /\/+$/, '' );
+		let s = String( site || DEFAULT_SITE ).replace( /\/+$/, '' );
+		if ( ! s ) {
+			return { ok: false, error: { code: 'SITE_REQUIRED', message: 'Site address is required' } };
+		}
 		let b = base || apiBaseFor( s );
 		let res = await api.request( 'GET', '/me', { token, base: b } );
 		const twin = ! base && res.error && res.error.code === 'REDIRECT' ? wwwTwin( s ) : null;
 		if ( twin ) {
-			// nabiad.com redirects to www.nabiad.com (or the reverse): use the address that answers directly.
+			// example.com redirects to www.example.com (or the reverse): use the address that answers directly.
 			const alt = await api.request( 'GET', '/me', { token, base: apiBaseFor( twin ) } );
 			if ( alt.ok ) {
 				s = twin;

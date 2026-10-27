@@ -105,7 +105,7 @@ class SettingsPage {
 				echo '</td></tr>';
 			}
 			$mk = $p . '_model';
-			echo '<tr><th><label for="iaa-f-' . esc_attr( $mk ) . '">Model</label></th><td><input id="iaa-f-' . esc_attr( $mk ) . '" name="' . esc_attr( $mk ) . '" value="' . esc_attr( $val( $mk ) ) . '" class="regular-text" placeholder="model id">';
+			echo '<tr><th><label for="iaa-f-' . esc_attr( $mk ) . '">Model</label></th><td><input type="text" id="iaa-f-' . esc_attr( $mk ) . '" name="' . esc_attr( $mk ) . '" value="' . esc_attr( $val( $mk ) ) . '" class="regular-text" placeholder="model id">';
 			$err( $mk );
 			echo '</td></tr>';
 			echo '<tr><th scope="row">Price (USD / 1M tokens)</th><td><label>Input <input type="number" step="0.0001" min="0" class="small-text" name="prices[' . esc_attr( $p ) . '][in]" value="' . esc_attr( $pin ) . '"></label> <label>Output <input type="number" step="0.0001" min="0" class="small-text" name="prices[' . esc_attr( $p ) . '][out]" value="' . esc_attr( $pout ) . '"></label><p class="description">From the provider\'s pricing page. Needed for the monthly budget unless this is a free tier.</p>';
@@ -142,12 +142,14 @@ class SettingsPage {
 		/* ---------------- Replies */
 		echo '<div class="iaa-tabpane" data-iaa-pane="replies"' . ( 'replies' === $tab ? ' data-active' : '' ) . '><div class="iaa-panel"><div class="iaa-panel__head"><h2>Replies</h2></div><div class="iaa-panel__body"><table class="form-table" role="presentation"><tbody>';
 		$chk( 'ai_enabled', 'AI suggestions', 'On (when off, staff can still use Quick answers)' );
-		echo '<tr><th><label for="iaa-f-business_name">Business name</label></th><td><input id="iaa-f-business_name" name="business_name" class="regular-text" value="' . esc_attr( $val( 'business_name' ) ) . '">';
+		$site_title = trim( wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ) );
+		echo '<tr><th><label for="iaa-f-business_name">Business name</label></th><td><input type="text" id="iaa-f-business_name" name="business_name" class="regular-text" value="' . esc_attr( $val( 'business_name' ) ) . '" placeholder="' . esc_attr( $site_title ) . '" aria-describedby="iaa-d-business_name">';
+		echo '<p class="description" id="iaa-d-business_name">' . esc_html( 'The name the AI uses for your business in replies. Leave empty to use the site title' . ( '' !== $site_title ? ' ("' . $site_title . '")' : '' ) . '.' ) . '</p>';
 		$err( 'business_name' );
 		echo '</td></tr>';
 		echo '<tr><th scope="row">Banglish messages</th><td><fieldset><legend class="screen-reader-text">Banglish messages</legend><label><input type="radio" name="banglish_reply_script" value="bn"' . checked( $val( 'banglish_reply_script' ), 'bn', false ) . '> Reply in Bangla script</label> <label><input type="radio" name="banglish_reply_script" value="latin"' . checked( $val( 'banglish_reply_script' ), 'latin', false ) . '> Reply in Banglish</label></fieldset></td></tr>';
 		echo '<tr><th scope="row">Digits in Bangla replies</th><td><fieldset><legend class="screen-reader-text">Digits in Bangla replies</legend><label><input type="radio" name="reply_digits" value="en"' . checked( $val( 'reply_digits' ), 'en', false ) . '> English digits (0-9)</label> <label><input type="radio" name="reply_digits" value="bn"' . checked( $val( 'reply_digits' ), 'bn', false ) . '> Bangla digits (০-৯)</label></fieldset></td></tr>';
-		$chk( 'allow_public_mrp', 'Public prices', 'Unverified contacts may be told the website price (WooCommerce) or MRP of listed products' );
+		$chk( 'allow_public_mrp', 'Public prices', 'Customers who are not linked dealers may be told the website price (WooCommerce) or MRP of listed products. Recommended for shops that sell to the public.' );
 		$chk( 'exact_stock', 'Exact stock quantity', 'Tell linked dealers the exact WooCommerce quantity (default: in stock / limited / out of stock only)' );
 		echo '<tr><th><label for="iaa-f-holding_reply_bn">Holding reply (Bangla)</label></th><td><textarea id="iaa-f-holding_reply_bn" name="holding_reply_bn" class="large-text" rows="2">' . esc_textarea( $val( 'holding_reply_bn' ) ) . '</textarea><p class="description">Used instead of a suggestion that contained an unapproved price.</p>';
 		$err( 'holding_reply_bn' );
@@ -158,7 +160,7 @@ class SettingsPage {
 
 		/* ---------------- Access & privacy */
 		echo '<div class="iaa-tabpane" data-iaa-pane="access"' . ( 'access' === $tab ? ' data-active' : '' ) . '><div class="iaa-panel"><div class="iaa-panel__head"><h2>Inbox page access</h2></div><div class="iaa-panel__body"><table class="form-table" role="presentation"><tbody>';
-		$chk( 'live_inbox', 'Live inbox read & insert', 'Let the extension read the open conversation and insert text into Meta\'s reply box. Keep OFF until Meta permission evidence is recorded (T0.09). When OFF, staff select or paste text and use Copy.' );
+		$chk( 'live_inbox', 'Live inbox read & insert', 'When staff click, the extension reads the open conversation and fills Meta\'s reply box (it never sends). When OFF, staff select or paste the customer text and use Copy. Check that this fits your use of Meta Business Suite before turning it on.' );
 		echo '</tbody></table></div></div>';
 		echo '<div class="iaa-panel"><div class="iaa-panel__head"><h2>Privacy</h2></div><div class="iaa-panel__body"><table class="form-table" role="presentation"><tbody>';
 		$chk( 'masked_logging', 'Masked text in logs', 'Store masked conversation and suggestions in the log for quality review (default off)' );

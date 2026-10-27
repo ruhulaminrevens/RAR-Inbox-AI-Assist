@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.0.0] — 2026-10-28
+
+Release candidate for production. Approval follows the owner checks in [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
+
+- **For any business in Bangladesh:**
+  - No company name is built in. The business name defaults to the WordPress site title.
+  - The Chrome extension connects to any site: enter the site address, and Chrome asks once for access.
+  - Plugin header and readme are generic. New `readme.txt`, `docs/PRIVACY.md` and `docs/PRODUCTION_READINESS.md`.
+- **Retail-first replies:**
+  - Customers who are not linked dealers are treated as regular customers. The AI never asks them for dealer details.
+  - Website prices are on by default for new installs with WooCommerce.
+  - No "price unit unclear" warning on website prices.
+  - The panel shows "সাধারণ কাস্টমার" instead of "যাচাই হয়নি".
+  - The price handoff reads "দাম নিশ্চিত করে জানাতে হবে".
+- **Polish:**
+  - The admin header shows the version only.
+  - Health checks have OK / Info / Needs attention, use plain language and include a smarter daily-maintenance check.
+  - Admin text inputs are styled consistently.
+  - The panel folds the how-to steps after first use and moves the staff note above the buttons.
+  - Diagnostics are compact and show the real version (a stray "null" is fixed).
+- **Faster** product matching on large catalogues (about 2.5× on 5,000 products, same results).
+
 ## [0.2.1] — 2026-10-27
 
 Fixes from the owner's first live use on nabiad.com (product photo + "Price koto?").

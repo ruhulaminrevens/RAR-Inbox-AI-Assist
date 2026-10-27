@@ -66,7 +66,7 @@ test( 'manifest permissions are exactly as documented (TRD §2)', () => {
 	const m = JSON.parse( src( 'manifest.json' ) );
 	assert.equal( m.manifest_version, 3 );
 	assert.deepEqual( m.permissions.sort(), [ 'clipboardWrite', 'sidePanel', 'storage' ] );
-	assert.deepEqual( m.host_permissions.sort(), [ 'https://business.facebook.com/*', 'https://nabiad.com/*', 'https://www.nabiad.com/*' ] );
+	assert.deepEqual( m.host_permissions, [ 'https://business.facebook.com/*' ], 'no business site hard-coded: each site is granted on connect' );
 	assert.deepEqual( m.content_scripts[ 0 ].matches, [ 'https://business.facebook.com/latest/inbox/*' ] );
 	assert.match( m.content_security_policy.extension_pages, /script-src 'self'/ );
 	assert.ok( m.key, 'stable extension id key present' );

@@ -91,6 +91,8 @@ class FactGuard {
 		$warnings   = array();
 		$blocked    = array();
 		$price_map  = self::price_units( $facts );
+		// A public (website) price is the shop's price per item as listed: no unit needs stating (1.0.0).
+		$public_set = self::public_prices( $facts );
 		// Approved product names (e.g. "Jaguar Classic Blue 100ml") are facts: their digits are not prices.
 		$scan       = self::mask_product_names( (string) $reply, $facts );
 
@@ -105,7 +107,7 @@ class FactGuard {
 				$allowed = $is_pct ? isset( $kb_percents[ $value ] ) : ( isset( $price_map[ $value ] ) || isset( $kb_prices[ $value ] ) );
 				if ( ! $allowed ) {
 					$blocked[] = $raw;
-				} elseif ( $is_price && isset( $price_map[ $value ] ) && ! self::unit_near( $scan, $pos, $len, $price_map[ $value ] ) ) {
+				} elseif ( $is_price && isset( $price_map[ $value ] ) && ! isset( $public_set[ $value ] ) && ! self::unit_near( $scan, $pos, $len, $price_map[ $value ] ) ) {
 					$warnings[] = array( 'code' => 'PRICE_UNIT_UNCLEAR', 'value' => $raw, 'context' => $context );
 				}
 				continue;
@@ -201,6 +203,17 @@ class FactGuard {
 			}
 		}
 		return array( $prices, $percents );
+	}
+
+	/** Normalised values of the public prices (website price / MRP) in the facts. */
+	private static function public_prices( array $facts ) {
+		$set = array();
+		foreach ( isset( $facts['public_prices'] ) ? $facts['public_prices'] : array() as $p ) {
+			if ( isset( $p['mrp_bdt'] ) ) {
+				$set[ self::norm_number( number_format( (float) $p['mrp_bdt'], 2, '.', '' ) ) ] = true;
+			}
+		}
+		return $set;
 	}
 
 	/** price value → list of units for prices/MRPs in the facts. */
