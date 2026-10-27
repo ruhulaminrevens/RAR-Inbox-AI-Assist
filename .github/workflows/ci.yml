@@ -108,7 +108,7 @@ jobs:
           curl -sSL -o /tmp/woocommerce.zip https://github.com/woocommerce/woocommerce/releases/download/11.1.2/woocommerce.zip
           echo "697b54ebdc55f8c0de30ff41ffdb9fb5b0ca4e51132313b90c107632a79a0b8a  /tmp/woocommerce.zip" | sha256sum -c -
           unzip -q /tmp/woocommerce.zip -d /tmp/wp/wp-content/plugins/
-          php -r '$_SERVER["HTTP_HOST"]="localhost:8899"; require "/tmp/wp/wp-load.php"; require_once ABSPATH."wp-admin/includes/plugin.php"; $r=activate_plugin("woocommerce/woocommerce.php"); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message()); exit(1); } echo "WooCommerce ", WC()->version, "\n";'
+          php -r '$_SERVER["HTTP_HOST"]="localhost:8899"; require "/tmp/wp/wp-load.php"; require_once ABSPATH."wp-admin/includes/plugin.php"; $r=activate_plugin("woocommerce/woocommerce.php"); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message()); exit(1); } delete_transient("_wc_activation_redirect"); echo "WooCommerce ", WC()->version, "\n";'
       - name: Start PHP server
         run: |
           PHP_CLI_SERVER_WORKERS=4 nohup php -S 127.0.0.1:8899 -t /tmp/wp > /tmp/server.log 2>&1 &

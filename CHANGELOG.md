@@ -11,6 +11,8 @@ First working build of the WordPress plugin and Chrome extension (pre-pilot).
 - Extension: side panel (Bangla UI, light/dark), select/paste + Copy by default, optional live capture/insert (admin switch, never sends), dealer link dialog, rewrite + undo, quick answers, diagnostics, Alt+Shift+D.
 - Tests: PHP unit/integration (incl. red-team, privacy, WooCommerce, lifecycle), extension unit tests, end-to-end with axe-core; CI workflow; packaging script.
 - Fixed during verification: icon markup parse error, literal "null" in panel views, unlabeled admin filters, listbox roles, guard cue crossing sentence boundaries.
+- Fact guard: internal fact IDs (`kb:20`, `price:…`) no longer count as facts, so they cannot suppress an unverified-number warning (found by an intermittent CI failure on MariaDB, where IDs keep growing).
+- Test runner: each test file runs in its own scope (per-file counts were corrupted), output is unbuffered, and a crash before the summary now fails the run. Admin tests clear WooCommerce's one-time setup redirect.
 
 ## Architecture v0.2 — 2026-10-27
 

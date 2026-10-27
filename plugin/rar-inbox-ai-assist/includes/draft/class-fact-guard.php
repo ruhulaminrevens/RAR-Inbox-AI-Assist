@@ -78,7 +78,8 @@ class FactGuard {
 	 * @return array( 'result' => pass|warned|blocked, 'warnings' => [], 'blocked_values' => [] )
 	 */
 	public static function check( $reply, array $facts, array $customer_texts ) {
-		$facts_text = Util::json( $facts );
+		// Internal identifiers (kb:20, price:1250) are not facts and must never whitelist a number.
+		$facts_text = Util::json( self::without_ids( $facts ) );
 		$fact_set   = self::number_set( $facts_text );
 		// A price may only equal a listed price/MRP or a price written in an approved KB answer; a
 		// percentage only a percentage written in an approved KB answer. Never the date line, pack
@@ -131,6 +132,21 @@ class FactGuard {
 
 		$result = $blocked ? 'blocked' : ( $warnings ? 'warned' : 'pass' );
 		return array( 'result' => $result, 'warnings' => $warnings, 'blocked_values' => array_values( array_unique( $blocked ) ) );
+	}
+
+	/** Facts without identifier fields (`id`, `*_id`, `*_ids`), recursively. */
+	private static function without_ids( $value ) {
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+		$out = array();
+		foreach ( $value as $k => $v ) {
+			if ( is_string( $k ) && ( 'id' === $k || '_id' === substr( $k, -3 ) || '_ids' === substr( $k, -4 ) ) ) {
+				continue;
+			}
+			$out[ $k ] = self::without_ids( $v );
+		}
+		return $out;
 	}
 
 	/** Cue windows around a number (12 characters each side), cut at sentence boundaries. */

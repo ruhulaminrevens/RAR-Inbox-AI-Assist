@@ -81,3 +81,12 @@ t_eq( array(), $r['blocked_values'], 'cue does not cross a sentence boundary (no
 t_ok( in_array( 'UNVERIFIED_NUMBER', array_column( $r['warnings'], 'code' ), true ), 'cross-sentence number is only a warning' );
 // But a price cue in the same sentence still blocks an unlisted number.
 t_eq( 'blocked', FactGuard::check( 'জাম্বো ৳১,২৫০, নিম ৯৯৯ টাকা।', $facts, array() )['result'], 'same-sentence unlisted price blocked' );
+// Internal fact IDs are not facts: "kb:20" / "price:20" must not whitelist the number 20.
+$with_ids = $facts;
+$with_ids['kb'][0]['id'] = 'kb:20';
+if ( ! empty( $with_ids['products'] ) ) {
+	$with_ids['products'][0]['id'] = 'price:20';
+}
+$r = FactGuard::check( 'আপনার ২০ কার্টনের অর্ডার নোট করলাম।', $with_ids, array() );
+t_eq( 'warned', $r['result'], 'fact ID number does not whitelist a quantity' );
+t_ok( in_array( 'UNVERIFIED_NUMBER', array_column( $r['warnings'], 'code' ), true ), 'unverified quantity warned despite matching ID' );

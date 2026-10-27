@@ -8,7 +8,7 @@ Human-reviewed AI reply assistant for **Nabiad Distribution Limited** dealers an
 
 | Part | Folder | Status |
 |---|---|---|
-| WordPress plugin `rar-inbox-ai-assist` | [`plugin/rar-inbox-ai-assist`](plugin/rar-inbox-ai-assist) | Built; 478/478 PHP checks (MariaDB 10.11 + WooCommerce 11.1.2), 464/464 (SQLite) |
+| WordPress plugin `rar-inbox-ai-assist` | [`plugin/rar-inbox-ai-assist`](plugin/rar-inbox-ai-assist) | Built; 480/480 PHP checks (MariaDB 10.11 + WooCommerce 11.1.2), 464/464 (SQLite) |
 | Chrome extension (MV3 side panel) | [`extension`](extension) | Built; 20/20 unit, 21/21 end-to-end incl. axe-core |
 | Tests | [`tests`](tests) | PHP unit/integration, extension unit, end-to-end |
 | Architecture v0.2 | [`docs`](docs/README.md) | Source of truth (PRD, AppFlow, UI, TRD, Schema, Plan) |

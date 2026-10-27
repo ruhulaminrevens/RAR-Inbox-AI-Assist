@@ -24,6 +24,12 @@ if ( ! get_role( 'shop_manager' ) ) {
 	RarIaa\Capabilities::sync();
 }
 
+// WooCommerce redirects the first wp-admin visit after activation to its setup wizard
+// (transient _wc_activation_redirect). That is not plugin behaviour; keep admin tests deterministic.
+if ( class_exists( 'WooCommerce' ) ) {
+	delete_transient( '_wc_activation_redirect' );
+}
+
 if ( ! function_exists( 't_ok' ) ) {
 	$GLOBALS['T'] = array( 'pass' => 0, 'fail' => 0, 'failures' => array(), 'file' => '' );
 

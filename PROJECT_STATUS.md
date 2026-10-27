@@ -5,7 +5,7 @@
 | Item | Status |
 |---|---|
 | Architecture v0.2 (six documents + audit) | Published |
-| WordPress plugin `rar-inbox-ai-assist` 0.1.0 | **Built.** 478/478 PHP checks on MariaDB 10.11 + WooCommerce 11.1.2; 464/464 on SQLite (WP 7.1.3, PHP 8.3) |
+| WordPress plugin `rar-inbox-ai-assist` 0.1.0 | **Built.** 480/480 PHP checks on MariaDB 10.11 + WooCommerce 11.1.2; 464/464 on SQLite (WP 7.1.3, PHP 8.3) |
 | Chrome extension 0.1.0 (side panel) | **Built.** 20/20 unit tests; 21/21 end-to-end against a mock inbox and local WordPress |
 | Accessibility (axe-core, WCAG 2.1 A/AA) | 0 serious/critical on 6 panel views and 7 admin pages; manual keyboard pass pending |
 | PHP 7.4–8.4 compatibility | PHPCompatibility clean; GitHub CI green on PHP 7.4, 8.3, 8.4 (MariaDB 10.11, WooCommerce 11.1.2) incl. E2E |

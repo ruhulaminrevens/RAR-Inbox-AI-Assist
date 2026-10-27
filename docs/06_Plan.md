@@ -137,7 +137,7 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 - **Outcome:** `.github/workflows/ci.yml` (PHP lint matrix 7.4/8.1/8.3/8.4, PHPCompatibility, `node --test`, link and token checks); `package.json` + `package-lock.json` (dev only: LinkeDOM, Playwright, axe-core — exact versions pinned and written into TRD §13); `composer.json` + `composer.lock` (dev only: PHPCS, PHPCompatibility); `scripts/check-links.py`, `scripts/check-tokens.py`, `scripts/package.py`.
 - **Verify:** CI run green on an empty-feature branch; `python3 scripts/check-links.py docs` exits 0.
 - **DoD:** TRD §13 rows for these tools changed from VERIFICATION REQUIRED to pinned versions.
-- **Status:** DONE · **Notes:** 2026-10-27: `.github/workflows/ci.yml`, `scripts/check_tokens.py`, `scripts/package.py`, `scripts/ci/setup-wp.sh`; dev deps pinned in package-lock (linkedom 0.18.14, puppeteer-core 25.16.0, @sparticuz/chromium 153.0.0, axe-core 4.10.3); PHPCS/PHPCompatibility pinned by commit in CI. GitHub Actions on commit cbec157: all jobs green — lint/PHPCompatibility, php -l 7.4/8.1/8.3/8.4, extension unit, plugin suites on PHP 7.4 (no WooCommerce), 8.3 and 8.4 (WooCommerce 11.1.2) with MariaDB 10.11, E2E on 8.3, package build. The first two runs (51d20fd) failed in the PHP 8.3 plugin job; logs were not retrievable, and the re-run with diagnostics only passed — treat as possibly flaky and watch.
+- **Status:** DONE · **Notes:** 2026-10-27: `.github/workflows/ci.yml`, `scripts/check_tokens.py`, `scripts/package.py`, `scripts/ci/setup-wp.sh`; dev deps pinned in package-lock (linkedom 0.18.14, puppeteer-core 25.16.0, @sparticuz/chromium 153.0.0, axe-core 4.10.3); PHPCS/PHPCompatibility pinned by commit in CI. GitHub Actions on commit cbec157: all jobs green — lint/PHPCompatibility, php -l 7.4/8.1/8.3/8.4, extension unit, plugin suites on PHP 7.4 (no WooCommerce), 8.3 and 8.4 (WooCommerce 11.1.2) with MariaDB 10.11, E2E on 8.3, package build. Earlier intermittent failures were diagnosed and fixed (see Blockers log).
 
 ### T0.07 — Version, provider and policy verification
 - **Phase / priority:** 0 / P0 · **Depends:** T0.01 · **Reqs:** NFR-04, NFR-06, NFR-09, OD-7 · **Spec:** [TRD §8](04_TRD.md#8-third-party-integrations-and-configuration), §13
@@ -153,63 +153,63 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 - **Outcome:** `Installer` creates the 12 tables with listed columns/indexes via `dbDelta`, options (`rar_iaa_settings` defaults, `rar_iaa_thread_secret`), `rar_iaa_schema_version = 1`, migration lock.
 - **Verify:** `wp eval-file tests/php/smoke.php schema` on MySQL 8.0 and MariaDB: every table, column and index from Schema §4 exists; re-activation is a no-op; 20 parallel `wp eval-file tests/php/migrate-race.php` processes started against a fresh install produce exactly 1 migration log line.
 - **DoD:** passes on both engines; unique `one_active_per_tier` behaves (two `1`s for one tier rejected, multiple NULLs allowed).
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
 
 ### T1.02 — Integrity validation and tests
 - **Phase / priority:** 1 / P0 · **Depends:** T1.01 · **Reqs:** NFR-12 · **Spec:** [Schema §1, §4](05_Schema.md#1-engine-and-conventions)
 - **Outcome:** repository-level validators for every logical FK and CHECK in Schema §4; orphan-check queries in `tests/php/integration/integrity.php`.
 - **Verify:** `wp eval-file tests/php/integration/integrity.php` — invalid inserts rejected (one test per CHECK/FK), orphan queries return 0.
 - **DoD:** all assertions pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
 
 ### T1.03 — Capabilities and role mapping
 - **Phase / priority:** 1 / P0 · **Depends:** T1.01 · **Reqs:** FR-14, OD-6 · **Spec:** [PRD §9](01_PRD.md#9-roles-and-permission-boundaries), [Schema §10](05_Schema.md#10-authorization-model)
 - **Outcome:** capabilities added on activation per PRD §9; staff-role toggles applied from settings; `rar_iaa_manage_settings` only on `administrator`.
 - **Verify:** `wp eval-file tests/php/integration/caps.php` checks each role's caps; `wp user create` with default registration role has none.
 - **DoD:** matrix test passes.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
 
 ### T1.04 — Token service
 - **Phase / priority:** 1 / P0 · **Depends:** T1.01 · **Reqs:** FR-14, R-07 · **Spec:** [TRD §4.1](04_TRD.md#41-device-tokens-extension--rest), [Schema §4.8](05_Schema.md#48-wp_rar_iaa_tokens)
 - **Outcome:** create (format, hash, shown once), verify (prefix → hash_equals → revoked/expired), revoke, max 3 active per user under lock, throttled `last_used_at`.
 - **Verify:** `wp eval-file tests/php/integration/tokens.php` (valid, wrong secret, revoked, expired, 4th token refused, hash never equals plaintext).
 - **DoD:** all pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
 
 ### T1.05 — REST token authentication + authorization tests
 - **Phase / priority:** 1 / P0 · **Depends:** T1.03, T1.04 · **Reqs:** FR-14, NFR-03 · **Spec:** [TRD §4](04_TRD.md#4-authentication-and-authorization), [Schema §10.2](05_Schema.md#102-rls-equivalent)
 - **Outcome:** authentication filter for `rar-iaa/v1` with `Authorization: Bearer` and `X-IAA-Token`; never affects other namespaces; live capability check.
 - **Verify:** `wp eval-file tests/php/integration/auth.php` — token on `/wp/v2/users/me` gives no access; missing cap → 403; removed role → next call 403; other user's draft → 404/403.
 - **DoD:** horizontal and vertical escalation tests fail as expected (i.e. access denied).
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
 
 ### T1.06 — Rate limiter, usage counters, budget
 - **Phase / priority:** 1 / P0 · **Depends:** T1.01 · **Reqs:** FR-18, NFR-09 · **Spec:** [TRD §10](04_TRD.md#10-rate-limiting-and-abuse-prevention), [Schema §4.10–4.11](05_Schema.md#410-wp_rar_iaa_usage_daily)
 - **Outcome:** per-minute buckets, daily and monthly checks, atomic upserts.
 - **Verify:** `wp eval-file tests/php/integration/limits.php` incl. 50 parallel increments (50 parallel `wp eval-file tests/php/limits-race.php` processes) → count exactly 50.
 - **DoD:** pass on MySQL and MariaDB.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
 
 ### T1.07 — AI concurrency slots
 - **Phase / priority:** 1 / P0 · **Depends:** T1.01 · **Reqs:** NFR-02, R-05 · **Spec:** [TRD §6 step 5](04_TRD.md#6-draft-pipeline-server)
 - **Outcome:** `Concurrency::acquire()` / `release()` with named locks `rar_iaa_ai_slot_{n}`.
 - **Verify:** test opens 3 DB connections; with default max 1, second acquire fails immediately; release frees a slot.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
 
 ### T1.08 — Audit service
 - **Phase / priority:** 1 / P0 · **Depends:** T1.01 · **Reqs:** FR-19, NFR-12 · **Spec:** [Schema §4.12](05_Schema.md#412-wp_rar_iaa_audit_log)
 - **Outcome:** `Audit::record(action, type, id, before, after)` with redaction of keys/token hashes and HMAC IP.
 - **Verify:** test asserts redacted fields never appear in `before_json/after_json`.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
 
 ### T1.09 — Settings service, secrets, kill switch
 - **Phase / priority:** 1 / P0 · **Depends:** T1.08 · **Reqs:** FR-17, FR-18, FR-20, NFR-03 · **Spec:** [TRD §8](04_TRD.md#8-third-party-integrations-and-configuration), [AppFlow A-07](02_AppFlow.md#a-07-settings)
 - **Outcome:** typed settings with defaults (per-minute 6, daily 300, monthly cap US$10, max concurrent 2, retention 30, banglish script `bn`, digits `en`, masked logging off, MRP mention off, exact stock off); constant-first key lookup; libsodium-encrypted fallback; kill switch (constant or setting).
 - **Verify:** `wp eval-file tests/php/integration/settings.php` — invalid values rejected; key never returned by any getter used by REST; kill switch returns `SERVICE_DISABLED`.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite) on local WP 7.1.3 / PHP 8.3.6 on SQLite and on MariaDB 10.11.14 (+ WooCommerce 11.1.2). Implemented on owner instruction ahead of G1 using DECISIONS.md safe defaults (pending sign-off).
 
 ## Phase 2 — Core backend and API
 
@@ -218,133 +218,133 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 - **Outcome:** shared error envelope, `X-IAA-Request-Id`, `Cache-Control: no-store, private`, `X-LiteSpeed-Cache-Control: no-cache`, 64 KB limit, `CLIENT_TOO_OLD`; `GET /me` contract.
 - **Verify:** `wp eval-file tests/php/integration/rest-me.php` — headers present on 200 and on errors; contract fields match TRD §5.3.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.02 — KB repository and admin actions
 - **Phase / priority:** 2 / P0 · **Depends:** T1.08, T1.03 · **Reqs:** FR-04, FR-15, OD-8 · **Spec:** [Schema §4.1–4.2, §8](05_Schema.md#41-wp_rar_iaa_kb_entries), [AppFlow A-02](02_AppFlow.md#a-02-knowledge-base)
 - **Outcome:** create/edit (new draft version), submit, approve (maker-checker, transaction), archive, restore, serving-fact query (approved + in-date, Asia/Dhaka).
 - **Verify:** `wp eval-file tests/php/integration/kb.php` — editor cannot approve own version (unless sole admin); approved v1 keeps serving while v2 is draft; date window respected; optimistic conflict detected.
 - **DoD:** pass; audit rows written.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.03 — Tiers and dealers
 - **Phase / priority:** 2 / P0 · **Depends:** T1.08, T1.03 · **Reqs:** FR-16, FR-05, OD-4 · **Spec:** [Schema §4.3–4.4](05_Schema.md#43-wp_rar_iaa_tiers), [AppFlow A-03](02_AppFlow.md#a-03-dealers--tiers)
 - **Outcome:** CRUD with validation, deactivation rules, search by code/name.
 - **Verify:** `wp eval-file tests/php/integration/dealers.php`.
 - **DoD:** pass; audit rows written.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.04 — Price CSV importer
 - **Phase / priority:** 2 / P0 · **Depends:** T2.03 · **Reqs:** FR-16, BR-10, OD-1 · **Spec:** [PRD BR-10](01_PRD.md#10-business-rules-and-validation), [TRD §5.2](04_TRD.md#52-admin-actions-admin-postphp-nonce--capability)
 - **Outcome:** UTF-8 (± BOM) reader, column whitelist, Bangla-digit normalisation, per-row errors, duplicate codes, `wc_product_id` existence warning, 0 errors → saved as `draft` list.
 - **Verify:** `wp eval-file tests/php/integration/price-import.php` with fixtures `tests/php/fixtures/prices-{valid,errors,bangla-digits,bom,5001rows}.csv`.
 - **DoD:** each fixture gives the expected result.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.05 — Price-list activation and rollback
 - **Phase / priority:** 2 / P0 · **Depends:** T2.04 · **Reqs:** FR-16, BR-08, OD-1 · **Spec:** [Schema §8](05_Schema.md#8-transactions-and-concurrency)
 - **Outcome:** activate / re-activate previous under tier lock and transaction.
 - **Verify:** test runs 10 parallel activations of two lists for one tier → exactly one active at the end; rollback restores previous.
 - **DoD:** pass on MySQL and MariaDB.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.06 — Thread links + dealer search endpoints
 - **Phase / priority:** 2 / P0 · **Depends:** T2.01, T2.03 · **Reqs:** FR-07, BR-07, OD-4 · **Spec:** [TRD §5.3](04_TRD.md#53-contracts), [Schema §8](05_Schema.md#8-transactions-and-concurrency)
 - **Outcome:** `GET/PUT/DELETE /threads/current/link` (HMAC from `X-IAA-Thread`), `GET /dealers`; `LINK_CONFLICT`.
 - **Verify:** `wp eval-file tests/php/integration/threads.php` — hash never returned; conflict on stale `expected_dealer_id`; inactive dealer refused.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.07 — Masker
 - **Phase / priority:** 2 / P0 · **Depends:** T0.06 · **Reqs:** FR-03, NFR-04 · **Spec:** [TRD §6 step 6](04_TRD.md#6-draft-pipeline-server)
 - **Outcome:** masking rules + in-memory map + unmask.
 - **Verify:** `wp eval-file tests/php/unit/masker.php` with ≥ 40 cases (ASCII/Bangla digits, +88, hyphens, spaces, landlines, e-mail, 10+ digit IDs, address cues, false positives such as prices and quantities not masked).
 - **DoD:** all pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.08 — Language detector + fact selector
 - **Phase / priority:** 2 / P0 · **Depends:** T2.02, T2.05 · **Reqs:** FR-04, FR-05, FR-10, OD-2 · **Spec:** [TRD §6 steps 7–9](04_TRD.md#6-draft-pipeline-server)
 - **Outcome:** language rules; KB scoring (top 8 + greeting/contact); product matching (code, tokens, aliases, Levenshtein ≥ 0.8); tier resolution requires a verified active dealer link for any private price; unverified conversations use public-only facts.
 - **Verify:** `wp eval-file tests/php/unit/facts.php` — labelled cases (Bangla, Banglish, English, misspellings) reach ≥ 90% expected matches; no private price facts when dealer link absent, including one-tier databases.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.09 — Stock service
 - **Phase / priority:** 2 / P0 · **Depends:** T2.04 · **Reqs:** FR-06, BR-03, OD-3 · **Spec:** [TRD §6 step 9, §8](04_TRD.md#8-third-party-integrations-and-configuration)
 - **Outcome:** buckets from WooCommerce (managed stock, stock status, low-stock amount), manual, hidden; WooCommerce inactive → `unknown`.
 - **Verify:** `wp eval-file tests/php/integration/stock.php` with HPOS on and off.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `w_woocommerce.php` 14/14 with real WooCommerce products (managed/unmanaged, low-stock, missing). `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `w_woocommerce.php` 14/14 with real WooCommerce products (managed/unmanaged, low-stock, missing). `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.10 — Prompt builder `p1`
 - **Phase / priority:** 2 / P0 · **Depends:** T2.08, T2.09 · **Reqs:** FR-01, FR-08, FR-09, FR-10, BR-01 – BR-06, BR-12 · **Spec:** [TRD §6 step 10](04_TRD.md#6-draft-pipeline-server)
 - **Outcome:** deterministic prompt (rules, facts JSON, role-tagged quoted conversation, output schema), `PROMPT_VERSION = "p1"`.
 - **Verify:** snapshot test `tests/php/unit/prompt.php` (golden file); prompt ≤ 6,000 tokens estimate for max inputs.
 - **DoD:** snapshot reviewed by owner once (content of rules in Bangla/English).
-- **Status:** DONE · **Notes:** 2026-10-27: implemented as prompt version `p2` (three/four variants, v0.2). `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: implemented as prompt version `p2` (three/four variants, v0.2). `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.11 — Provider adapters (Anthropic, OpenAI, stub)
 - **Phase / priority:** 2 / P0 · **Depends:** T1.09, T0.07 · **Reqs:** FR-17, NFR-01, OD-7 · **Spec:** [TRD §6 steps 11–12, §8](04_TRD.md#8-third-party-integrations-and-configuration)
 - **Outcome:** `ProviderInterface`, Anthropic and OpenAI via `wp_remote_post` (20 s timeout, retry rules), JSON parse + one repair retry, usage → cost (settings prices), stub provider (dev/local only), "Test connection".
 - **Verify:** `wp eval-file tests/php/unit/providers.php` with mocked HTTP (`pre_http_request` filter): success, 401, 429, 500 then success, timeout, invalid JSON then repaired, invalid twice → `PROVIDER_BAD_OUTPUT`; stub refuses to load when `WP_ENVIRONMENT_TYPE=production`.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: request/response shapes unit-tested with the stub; **no live Anthropic/OpenAI call made** (needs owner key, T0.07/T4.08). `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: request/response shapes unit-tested with the stub; **no live Anthropic/OpenAI call made** (needs owner key, T0.07/T4.08). `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.12 — Fact guard + holding reply
 - **Phase / priority:** 2 / P0 · **Depends:** T2.07 · **Reqs:** FR-08, BR-01, BR-02, R-03 · **Spec:** [TRD §6 step 14](04_TRD.md#6-draft-pipeline-server)
 - **Outcome:** number extraction (ASCII/Bangla, ranges, times, dates, %), price-like detection, allowed-set check, banned phrases, blocked → holding reply.
 - **Verify:** `wp eval-file tests/php/unit/guard.php` ≥ 60 cases.
 - **DoD:** pass; 0 unblocked invented prices in the cases.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.13 — Handoff rules
 - **Phase / priority:** 2 / P0 · **Depends:** T2.07 · **Reqs:** FR-09, BR-04 · **Spec:** [TRD §6 step 15](04_TRD.md#6-draft-pipeline-server)
 - **Outcome:** keyword rule sets per reason (bn, Banglish, en), merge with model flag, `unknown_dealer_price`.
 - **Verify:** `wp eval-file tests/php/unit/handoff.php` labelled set ≥ 40 cases, precision and recall ≥ 0.9 on the set.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.14 — Draft service + `POST /drafts`
 - **Phase / priority:** 2 / P0 · **Depends:** T1.06, T1.07, T2.06, T2.10, T2.11, T2.12, T2.13 · **Reqs:** FR-01 – FR-10, FR-18, FR-19, NFR-01, NFR-02, NFR-11 · **Spec:** [TRD §5.3, §6](04_TRD.md#6-draft-pipeline-server), [Schema §4.9](05_Schema.md#49-wp_rar_iaa_draft_log)
 - **Outcome:** full pipeline steps 1–16; idempotency; logging (masked only if enabled).
 - **Verify:** `wp eval-file tests/php/integration/drafts.php` with stub provider: contract fields; idempotent replay returns same `draft_id` without second provider call; `BUSY`, `RATE_LIMITED`, `DAILY_LIMIT`, `BUDGET_EXCEEDED`, `SERVICE_DISABLED`; no raw text in any table (`SELECT` scan for a marker string sent in the request returns 0 rows).
 - **DoD:** pass; server time excl. provider ≤ 400 ms p95 on local over 50 runs.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.15 — `POST /drafts/{id}/rewrite`
 - **Phase / priority:** 2 / P1 · **Depends:** T2.14 · **Reqs:** FR-11 · **Spec:** [TRD §5.3](04_TRD.md#53-contracts)
 - **Outcome:** rewrite with parent fact set; `FACTS_CHANGED` warning; owner check.
 - **Verify:** `wp eval-file tests/php/integration/rewrite.php`.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.16 — `POST /drafts/{id}/outcome`
 - **Phase / priority:** 2 / P1 · **Depends:** T2.14 · **Reqs:** FR-13 · **Spec:** [TRD §5.3](04_TRD.md#53-contracts), [Schema §8](05_Schema.md#8-transactions-and-concurrency)
 - **Outcome:** once-only outcome, owner check.
 - **Verify:** `wp eval-file tests/php/integration/outcome.php` (second call 409; other user 404).
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.17 — KB search, KB used, self-revoke endpoints
 - **Phase / priority:** 2 / P0 · **Depends:** T2.01, T2.02 · **Reqs:** FR-23, FR-14 · **Spec:** [TRD §5.1](04_TRD.md#51-endpoint-inventory)
 - **Outcome:** `GET /kb/search`, `POST /kb/{id}/used`, `POST /tokens/self/revoke`.
 - **Verify:** `wp eval-file tests/php/integration/kb-search.php` — drafts/archived/out-of-date entries never returned.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.18 — Daily maintenance (retention)
 - **Phase / priority:** 2 / P0 · **Depends:** T2.14 · **Reqs:** FR-19, NFR-04 · **Spec:** [Schema §6](05_Schema.md#6-soft-vs-hard-delete-retention-and-privacy)
 - **Outcome:** scheduled event; batch purges per Schema §6; `rar_iaa_maintenance_last_run`.
 - **Verify:** `wp cron event run rar_iaa_daily_maintenance` on seeded data removes exactly the expired rows.
 - **DoD:** pass.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ### T2.19 — Backend integration suite (verification)
 - **Phase / priority:** 2 / P0 · **Depends:** T2.14 – T2.18 · **Reqs:** NFR-06 · **Spec:** [TRD §17](04_TRD.md#17-testing-strategy-and-quality-gates)
 - **Outcome:** full PHP suite in CI on PHP 7.4/8.1/8.3/8.4 × HPOS on/off × MySQL 8.0, plus one local MariaDB run.
 - **Verify:** CI green; local MariaDB log attached to Notes.
 - **DoD:** green.
-- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 478/478 (MariaDB+WooCommerce) and 464/464 (SQLite).
+- **Status:** DONE · **Notes:** 2026-10-27: `php tests/php/run-all.php` → 480/480 (MariaDB+WooCommerce) and 464/464 (SQLite).
 
 ## Phase 3 — Frontend and UI integration
 
@@ -504,7 +504,7 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 - **Depends:** T2.14 · **Priority:** P0 · **Reqs:** FR-08, KPI-4, R-03, R-04
 - **Outcome:** `tests/guard/redteam.json` ≥ 60 cases (invented prices/percentages in bn/Banglish/en, Bangla digits, injection attempts, discount requests) run through the full pipeline with a scripted adversarial stub.
 - **Verify:** `wp eval-file tests/php/integration/redteam.php` — 0 unblocked invented prices; all discount requests → handoff.
-- **DoD:** pass. · **Status:** DONE · **Notes:** 2026-10-27: `g_redteam.php` 33/33 and `unit/guard.php` 44/44. Fewer than 60 cases — extend during T4.11.
+- **DoD:** pass. · **Status:** DONE · **Notes:** 2026-10-27: `g_redteam.php` 33/33 and `unit/guard.php` 46/46. Fewer than 60 cases — extend during T4.11.
 
 ### T4.05 — Independent security review
 - **Depends:** T4.02, T4.03 · **Priority:** P0 · **Reqs:** NFR-03, R-07 · **Spec:** [TRD §9](04_TRD.md#9-security-requirements-and-threat-model)
@@ -544,7 +544,7 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 ### T5.01 — Packaging and release workflow
 - **Depends:** T4.01 – T4.07 · **Priority:** P0 · **Spec:** [TRD §15](04_TRD.md#15-deployment-cicd-and-environments)
 - **Verify:** `python3 scripts/package.py` produces both ZIPs + `SHA256SUMS.txt`; fresh install of the ZIPs on a clean local WP and Chrome passes T4.03 smoke subset.
-- **DoD:** pass. · **Status:** IN_PROGRESS · **Notes:** 2026-10-27: `python3 scripts/package.py` builds plugin ZIP, extension ZIP and `SHA256SUMS`; fresh install of both ZIPs on a clean WP 7.1.3 / MariaDB 10.11 (`PLUGIN_ZIP=… scripts/ci/setup-wp.sh`, `IAA_E2E_EXT_DIR=<unzipped extension>`) → 462/462 PHP checks, 21/21 E2E. Real-Chrome load-unpacked and GitHub release workflow not run.
+- **DoD:** pass. · **Status:** IN_PROGRESS · **Notes:** 2026-10-27: `python3 scripts/package.py` builds plugin ZIP, extension ZIP and `SHA256SUMS`; fresh install of both ZIPs on a clean WP 7.1.3 / MariaDB 10.11 (`PLUGIN_ZIP=… scripts/ci/setup-wp.sh`, `IAA_E2E_EXT_DIR=<unzipped extension>`) → 464/464 PHP checks, 21/21 E2E. Real-Chrome load-unpacked and GitHub release workflow not run.
 
 ### T5.02 — Backup + staging install
 - **Depends:** T5.01 · **Priority:** P0 · **Spec:** [TRD §16](04_TRD.md#16-backup-disaster-recovery-and-rollback)
@@ -587,7 +587,7 @@ Status values: `TODO` / `IN_PROGRESS` / `BLOCKED` / `DONE`. A task is `DONE` onl
 | 2026-10-27 | T0.02, T0.03, T3.04, T3.08 | Live Meta inbox and owner presence needed; Meta permission evidence (T0.09) not recorded | Owner | Open — `live_inbox` stays OFF; selection/paste + Copy works |
 | 2026-10-27 | T0.07, T4.08 | No provider key in the build environment; no live AI call made | Owner | Open — owner adds key in wp-config and runs Test connection |
 | 2026-10-27 | T0.08, T4.07 | Hostinger campaign-load benchmark cannot run from the build environment | Owner | Open — keep 1 concurrent AI call |
-| 2026-10-27 | T0.06 | First two CI runs failed in the PHP 8.3 plugin job (cause not visible); passed on re-run | Claude | Monitoring — failures now emit annotations |
+| 2026-10-27 | T0.06 | Intermittent CI failures in WooCommerce jobs | Claude | Resolved — causes found via annotations: (1) WooCommerce's one-time activation redirect hit the first admin request (test harness now clears it); (2) fact IDs from growing MariaDB auto-increments whitelisted numbers in the guard (fixed in `FactGuard`, regression test added). Runner also fixed (scope isolation, unbuffered output, fail on early exit). Check counts vary by ±2 because `k_load.php` skips BUSY checks when the server serialises requests. |
 
 ## Traceability check (requirements → tasks)
 

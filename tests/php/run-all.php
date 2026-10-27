@@ -32,7 +32,10 @@ foreach ( $files as $f ) {
 	$before               = $GLOBALS['T']['pass'] + $GLOBALS['T']['fail'];
 	$failb                = $GLOBALS['T']['fail'];
 	echo basename( dirname( $f ) ) . '/' . basename( $f ) . "\n";
-	require $f;
+	// Own scope per file: test variables must not clobber the runner's ($f, $before, …).
+	( static function ( $iaa_test_file ) {
+		require $iaa_test_file;
+	} )( $f );
 	echo '  ' . ( $GLOBALS['T']['pass'] + $GLOBALS['T']['fail'] - $before ) . ' checks, ' . ( $GLOBALS['T']['fail'] - $failb ) . " failed\n";
 	fflush( STDOUT );
 }
