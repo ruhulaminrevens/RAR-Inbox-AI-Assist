@@ -1,0 +1,69 @@
+{
+  "manifest_version": 3,
+  "name": "RAR Inbox AI Assist",
+  "short_name": "Inbox AI Assist",
+  "version": "0.1.0",
+  "description": "Fact-checked reply suggestions for Nabiad's Meta Business Suite inbox staff. Never sends messages.",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Inbox AI Assist",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "https://business.facebook.com/*",
+    "https://nabiad.com/*",
+    "https://www.nabiad.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://business.facebook.com/latest/inbox/*"
+      ],
+      "js": [
+        "content/inbox-adapter.js",
+        "content/composer.js",
+        "content/main.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "commands": {
+    "draft": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Suggest replies for the selected text / open conversation"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA6BcTeTHwmpckvyLa1iTE11j/AAscXZWWlpDp5Y+dpOiqhZEx1xTwDOSDKF5Msc33CVirA1aDWzBB4sNO5Ff0FcgvbwZuwfw05L31EnYoRDxXZHmf7d5YT4ATXYAHt6dJInEnUr9UDs6q2sTdWrZavWkAHvzEemf4Igr4SvhyWRTFMSdo705NlxpwvbC1I7Kk7FQRe8J/LXwfKSDOFhhfrZ1eFn5heNu+wfTVfbI5MKnSVSDaG1C2wkr7TrsnemYBCaGkWFJ5On6bryvuzLk0rKSCaXarj56M/C5jId8YmHszxAgEyA9NzZqVkkSJrK+lttRWs7qMsziaYUes++/IEQIDAQAB"
+}

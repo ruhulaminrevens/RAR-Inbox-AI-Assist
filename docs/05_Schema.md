@@ -461,3 +461,25 @@ Business logic shown: dealer 14 is tier B, so drafts for its conversation quote 
 
 Add `suggestion_count`, `selected_variant_id` and `variant_guard_summary` (enum values validated in code) to draft log; **do not** store unmasked suggestion text. Reserve cost before provider calls: add `reserved_cost_usd_micros BIGINT UNSIGNED NOT NULL DEFAULT 0` to daily usage counters and design an atomic crash-recoverable monthly reservation ledger (request ID, amount, expiry, status only), exact table DDL subject to G1. Unlinked/inactive dealer relationships yield unverified/public-only pricing, even when only one tier exists. Idempotency contains metadata only (hash, UUID, status, expiry); no full response in transients. Automated tests scan DB/options/transients/error logs for raw PII markers and verify cross-namespace token denial.
 
+
+## 14. `cost_reservations` (v0.1.0)
+
+Resolves the "exact table DDL subject to G1" note above (OD-14). Holds no text, only request id, amount, status and times.
+
+```sql
+CREATE TABLE {prefix}rar_iaa_cost_reservations (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  request_id char(36) NOT NULL,
+  day date NOT NULL,                        -- Asia/Dhaka date of the reservation
+  amount_usd_micros bigint(20) unsigned NOT NULL,
+  status varchar(10) NOT NULL DEFAULT 'reserved',  -- reserved | settled | released | expired
+  expires_at datetime NOT NULL,             -- UTC; created_at + 120 s
+  created_at datetime NOT NULL,
+  settled_at datetime NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY request (request_id),
+  KEY status_expires (status, expires_at)
+);
+```
+
+Reserve: inside one transaction under lock `budget`, check `spent + reserved + amount ≤ monthly cap` and the daily request limit, insert the row and add `amount` to `usage_daily.reserved_cost_usd_micros`. Settle: mark `settled`, subtract the reservation, add the real cost. Recovery: `Budget::release_expired()` (on each reserve and in daily maintenance) releases rows past `expires_at`. Schema version 2 also adds `draft_log.suggestion_count`, `selected_variant_id`, `variant_guard_summary` and `usage_daily.reserved_cost_usd_micros`.

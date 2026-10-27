@@ -1,0 +1,17 @@
+{
+  "name": "rar-inbox-ai-assist",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dev/test tooling only. Nothing here runs on the server.",
+  "type": "module",
+  "scripts": {
+    "test:ext": "node --test tests/ext/*.test.mjs",
+    "test:e2e": "node tests/e2e/run.mjs"
+  },
+  "devDependencies": {
+    "@sparticuz/chromium": "153.0.0",
+    "axe-core": "4.10.3",
+    "linkedom": "0.18.14",
+    "puppeteer-core": "25.16.0"
+  }
+}

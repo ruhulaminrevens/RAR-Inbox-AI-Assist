@@ -1,0 +1,152 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: Lint, compatibility and design rules
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docs and design-token checks
+        run: |
+          python3 scripts/check_docs.py
+          python3 scripts/check_tokens.py
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: none
+      - name: PHPCompatibility 7.4–8.4 (pinned commits)
+        run: |
+          set -e
+          clone() { git init -q "$1" && git -C "$1" fetch -q --depth 1 "$2" "$3" && git -C "$1" checkout -q FETCH_HEAD; }
+          clone /tmp/phpcs https://github.com/PHPCSStandards/PHP_CodeSniffer.git 7f47350339831578dfab3eb288c12d18c1dfccfe
+          clone /tmp/phpcompat https://github.com/PHPCompatibility/PHPCompatibility.git 4b1ac835da9b71a6ac3bc70ff903638187f33674
+          clone /tmp/phpcsutils https://github.com/PHPCSStandards/PHPCSUtils.git 33a13f5bdc00d46cd9ff2ee3f1f0b8078c5c20a1
+          php /tmp/phpcs/bin/phpcs --config-set installed_paths /tmp/phpcompat,/tmp/phpcsutils
+          php /tmp/phpcs/bin/phpcs --standard=PHPCompatibility --runtime-set testVersion 7.4-8.4 --extensions=php -q plugin
+
+  php-lint:
+    name: php -l (PHP ${{ matrix.php }})
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        php: ['7.4', '8.1', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+      - run: find plugin -name '*.php' -print0 | xargs -0 -n1 php -l
+
+  extension-unit:
+    name: Extension unit tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: node --test tests/ext/*.test.mjs
+
+  plugin:
+    name: Plugin tests (PHP ${{ matrix.php }}, MariaDB 10.11${{ matrix.woo && ', WooCommerce 11.1.2' || '' }})${{ matrix.e2e && ' + E2E' || '' }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '7.4'
+            e2e: false
+            woo: false
+          - php: '8.3'
+            e2e: true
+            woo: true
+          - php: '8.4'
+            e2e: false
+            woo: true
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: wp_iaa
+          MARIADB_USER: iaa
+          MARIADB_PASSWORD: ci-only-password
+          MARIADB_ROOT_PASSWORD: ci-only-root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      IAA_PROVIDER: stub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli, sodium, curl, mbstring, intl
+          tools: none
+      - name: WordPress 7.1.3 test site
+        run: |
+          git init -q /tmp/wp-src
+          git -C /tmp/wp-src fetch -q --depth 1 https://github.com/WordPress/WordPress.git refs/tags/7.1.3
+          git -C /tmp/wp-src checkout -q FETCH_HEAD
+          WP_SRC=/tmp/wp-src WP_DIR=/tmp/wp SITE_URL=http://localhost:8899 \
+          DB_HOST=127.0.0.1 DB_NAME=wp_iaa DB_USER=iaa DB_PASSWORD=ci-only-password \
+          bash scripts/ci/setup-wp.sh
+      - name: WooCommerce 11.1.2 (release ZIP, verified by SHA-256)
+        if: matrix.woo
+        run: |
+          curl -sSL -o /tmp/woocommerce.zip https://github.com/woocommerce/woocommerce/releases/download/11.1.2/woocommerce.zip
+          echo "697b54ebdc55f8c0de30ff41ffdb9fb5b0ca4e51132313b90c107632a79a0b8a  /tmp/woocommerce.zip" | sha256sum -c -
+          unzip -q /tmp/woocommerce.zip -d /tmp/wp/wp-content/plugins/
+          php -r '$_SERVER["HTTP_HOST"]="localhost:8899"; require "/tmp/wp/wp-load.php"; require_once ABSPATH."wp-admin/includes/plugin.php"; $r=activate_plugin("woocommerce/woocommerce.php"); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message()); exit(1); } delete_transient("_wc_activation_redirect"); echo "WooCommerce ", WC()->version, "\n";'
+      - name: Start PHP server
+        run: |
+          PHP_CLI_SERVER_WORKERS=4 nohup php -S 127.0.0.1:8899 -t /tmp/wp > /tmp/server.log 2>&1 &
+          for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:8899/ && break; sleep 1; done
+      - name: Plugin unit + integration tests
+        run: |
+          set -o pipefail
+          IAA_TEST_URL='http://127.0.0.1:8899/index.php?rest_route=/rar-iaa/v1' WP_LOAD=/tmp/wp/wp-load.php php tests/php/run-all.php 2>&1 | tee /tmp/php-tests.log
+      - uses: actions/setup-node@v4
+        if: matrix.e2e
+        with:
+          node-version: '22'
+      - name: End-to-end (panel + background + content scripts + REST, axe-core)
+        if: matrix.e2e
+        run: |
+          npm ci
+          set -o pipefail
+          IAA_E2E_ORIGIN=http://127.0.0.1:8899 IAA_E2E_DOCROOT=/tmp/wp WP_LOAD=/tmp/wp/wp-load.php node tests/e2e/run.mjs 2>&1 | tee /tmp/e2e.log
+      - name: No PHP warnings from the plugin
+        run: |
+          if grep -E "PHP (Fatal|Warning|Notice|Deprecated).*rar-inbox-ai-assist" /tmp/wp/debug.log; then exit 1; fi
+      - name: Logs as annotations on failure
+        if: failure()
+        run: |
+          note() { [ -f "$2" ] && echo "::error title=$1::$(tail -40 "$2" | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')" || true; }
+          note "PHP tests (tail)" /tmp/php-tests.log
+          note "E2E (tail)" /tmp/e2e.log
+          note "PHP server log (tail)" /tmp/server.log
+          note "WP debug.log (tail)" /tmp/wp/debug.log
+
+  package:
+    name: Build release ZIPs
+    needs: [static, php-lint, extension-unit, plugin]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/package.py --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rar-inbox-ai-assist-build
+          path: dist/
