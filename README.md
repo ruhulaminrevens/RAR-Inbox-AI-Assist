@@ -17,10 +17,15 @@ Not yet verified: live Meta inbox capture/insert (off by default; select/paste +
 
 ## Download
 
-- **[Release v0.1.0 (pre-release)](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/tag/v0.1.0)** — `rar-inbox-ai-assist-0.1.0.zip` (WordPress plugin), `rar-inbox-ai-assist-extension-0.1.0.zip` (Chrome extension), `SHA256SUMS`.
-- [All releases](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases) · [Source ZIP of `main`](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/archive/refs/heads/main.zip)
+- **Releases:** https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases — when a release (e.g. `v0.1.0`) is published, the *Release assets* workflow attaches `rar-inbox-ai-assist-<version>.zip` (WordPress plugin), `rar-inbox-ai-assist-extension-<version>.zip` (Chrome extension) and `SHA256SUMS`.
+- **Every CI run** also keeps the same ZIPs as the artifact `rar-inbox-ai-assist-build` (Actions tab, sign-in required).
+- Build locally: `python3 scripts/package.py` (deterministic — identical bytes for identical sources).
 
-Do not use the source ZIP as a plugin: upload the release's plugin ZIP to WordPress and unzip the extension ZIP for Chrome.
+Do not upload GitHub's "Source code" ZIP to WordPress: use the plugin ZIP, and unzip the extension ZIP for Chrome.
+
+### Publishing a release (owner)
+
+GitHub → Releases → *Draft a new release* → tag `v0.1.0` on `main` → title → tick *Set as a pre-release* → Publish. The ZIPs appear on the release a minute later.
 
 ## Install
 
