@@ -38,18 +38,70 @@ Customer's message ─► staff selects / pastes (or live read on click)
 
 ## 📦 Download & installation
 
-Installable ZIPs are attached to each [GitHub Release](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases) by the release workflow, or built locally with `python3 scripts/package.py`:
+### Latest v1.0.0 — tested release-candidate build
 
-| Package | File | Install |
+**Current source version: `v1.0.0`** · [✅ Passing CI run](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/runs/40558540649) · **Not yet approved for production**
+
+The latest v1.0.0 packages are available together as the GitHub Actions artifact **`rar-inbox-ai-assist-build`**.
+
+<div align="center">
+
+### [⬇️ Download latest v1.0.0 build (GitHub Actions)](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/actions/runs/40558540649#artifacts)
+
+*Open the run → scroll to **Artifacts** → download **rar-inbox-ai-assist-build**. GitHub sign-in may be required.*
+
+</div>
+
+After extracting the downloaded build artifact, you will have:
+
+| Component | v1.0.0 installable file | Install method |
 |:--|:--|:--|
-| **WordPress plugin** | `rar-inbox-ai-assist-1.0.0.zip` | WordPress → Plugins → Add New → Upload Plugin |
-| **Chrome extension** | `rar-inbox-ai-assist-extension-1.0.0.zip` | Unzip → `chrome://extensions` → Developer mode → Load unpacked |
-| **Checksums** | `SHA256SUMS` | Verify the downloads |
+| **WordPress plugin** | `rar-inbox-ai-assist-1.0.0.zip` | WP Admin → Plugins → Add New → Upload Plugin |
+| **Chrome extension** | `rar-inbox-ai-assist-extension-1.0.0.zip` | Extract extension ZIP → `chrome://extensions` → Developer mode → Load unpacked |
+| **Integrity verification** | `SHA256SUMS` | Verify both ZIPs before installing |
 
-> [!CAUTION]
-> Do not upload the GitHub *Source code* ZIP into WordPress. Upload only the plugin ZIP. Chrome needs the **unzipped** extension folder, with `manifest.json` at its root.
+> [!NOTE]
+> The v1.0.0 download is a **CI build artifact**, not a permanent GitHub Release. It contains both installable ZIPs inside an outer ZIP and can expire under GitHub artifact retention rules. **No v1.0.0 GitHub Release has been published as of this README update.** For v1.0.0, use the CI link above or build the two ZIPs from source.
 
-**Quick start:** install the plugin → *Settings → AI providers*: add a free Gemini and/or Groq key and press **Test** → add approved answers → *Products & prices → Sync now* (WooCommerce) → each staff member creates a token → in the side panel enter your site address and the token. Full steps: [docs/INSTALL.md](docs/INSTALL.md).
+### Direct individual ZIP downloads — published v0.2.0 pre-release
+
+If you specifically need the previously published **v0.2.0** version, these are **permanent versioned release asset links** (not the latest v1.0.0):
+
+| Download | Direct file |
+|:--|:--|
+| **WordPress Plugin v0.2.0** | [⬇️ Download WordPress Plugin (.zip)](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/rar-inbox-ai-assist-0.2.0.zip) |
+| **Chrome Extension v0.2.0** | [⬇️ Download Chrome Extension (.zip)](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/rar-inbox-ai-assist-extension-0.2.0.zip) |
+| **SHA-256 checksums** | [⬇️ Download SHA256SUMS](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/download/v0.2.0/SHA256SUMS) |
+
+[**All published GitHub Releases**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases) · [**v0.2.0 Pre-release**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/releases/tag/v0.2.0) · [**Download full source (not installable)**](https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist/archive/refs/heads/main.zip)
+
+> [!WARNING]
+> **Do not mix versions.** Use the **v1.0.0 plugin and v1.0.0 extension together**, or both v0.2.0 files together. Do **not** upload GitHub's full *Source code* ZIP into WordPress, and do not select an unextracted Chrome ZIP for *Load unpacked*. Before updating an existing plugin, back up site files and the database.
+
+### Quick start
+
+1. Download **both ZIPs of the same version** using the links above.
+2. **WordPress:** take a files/database backup, install or replace the plugin ZIP, then configure **Inbox AI Assist → Settings → AI providers** with a supported Gemini, Groq, Anthropic or OpenAI key. Use **Test** to verify connectivity.
+3. **Business facts:** add approved knowledge-base answers, and sync WooCommerce products/prices when applicable.
+4. **Staff access:** create a separate access token for every authorised user.
+5. **Chrome:** extract the extension ZIP to a permanent folder, then visit `chrome://extensions`, enable **Developer mode** and choose **Load unpacked**.
+6. Open the Meta Business Suite inbox, connect the side panel to the WordPress site, **select or paste a test message**, choose a suggestion, edit, copy and review before manually pressing Send.
+
+**Full step-by-step setup:** [Installation Guide](docs/INSTALL.md) · [Production Readiness Checklist](docs/PRODUCTION_READINESS.md) · [Privacy Guide](docs/PRIVACY.md)
+
+### For maintainers: publish permanent v1.0.0 direct links
+
+When ready to publish this release candidate, use **GitHub → Releases → Draft a new release**, create tag `v1.0.0` from the verified commit, select **pre-release** until owner approval, then publish. The existing [release workflow](.github/workflows/release.yml) is designed to attach `rar-inbox-ai-assist-1.0.0.zip`, `rar-inbox-ai-assist-extension-1.0.0.zip` and `SHA256SUMS`. Verify the assets appear before replacing the CI link with permanent v1.0.0 asset URLs.
+
+```bash
+# Build installable ZIPs locally, if preferred
+git clone https://github.com/ruhulaminrevens/RAR-Inbox-AI-Assist.git
+cd RAR-Inbox-AI-Assist
+python3 scripts/package.py
+# Output: dist/rar-inbox-ai-assist-1.0.0.zip
+#         dist/rar-inbox-ai-assist-extension-1.0.0.zip
+#         dist/SHA256SUMS
+```
 
 ## 🚀 Key features
 
