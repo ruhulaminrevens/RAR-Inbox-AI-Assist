@@ -10,7 +10,7 @@ import { editDistance, squash } from '../lib/text.js';
 import {
 	VARIANT_LABELS, HANDOFF_LABELS, GUARD_LABELS, ERROR_ACTIONS,
 	warningText, errorText, isStale, insertCheck, selectedSuggestion, advisoryFor,
-	outcomeFor, messagesFromText, nextVariant,
+	outcomeFor, messagesFromText, nextVariant, aiNote,
 } from './state.js';
 
 /* ================================================================== State */
@@ -279,6 +279,7 @@ async function createDraft( body, convAtCapture, idem = null ) {
 		warnings: d.warnings || [],
 		conv: convAtCapture || null,
 		requestId: d.request_id,
+		ai: d.ai || null,
 		reported: false,
 	};
 	S.selected = null;
@@ -487,7 +488,7 @@ function viewConnect( message ) {
 		const r = await bg( 'connect', { token, site, base } );
 		if ( r && r.ok ) {
 			tokenInput.value = '';
-			toast( 'সংযোগ হয়েছে।' );
+			toast( r.movedTo ? `সংযোগ হয়েছে (${ new URL( r.movedTo ).hostname })।` : 'সংযোগ হয়েছে।' );
 			await loadStatus();
 			return;
 		}
@@ -503,7 +504,10 @@ function viewConnect( message ) {
 	return [
 		h( 'h2', { class: 'iaa-h2' }, 'সংযোগ করুন' ),
 		message ? alertBox( 'warning', 'triangle-alert', h( 'p', {}, message ) ) : null,
-		h( 'p', { class: 'iaa-help' }, 'nabiad.com-এ লগইন করুন → wp-admin → Inbox AI Assist → Access tokens → "Create token"। তারপর token এখানে পেস্ট করুন।' ),
+		h( 'ol', { class: 'iaa-steps' },
+			h( 'li', {}, h( 'strong', {}, 'nabiad.com-এ লগইন করুন' ), h( 'span', {}, 'নিজের অ্যাকাউন্টে → wp-admin → Inbox AI Assist → Access tokens' ) ),
+			h( 'li', {}, h( 'strong', {}, '"Create token" চাপুন ও কপি করুন' ), h( 'span', {}, 'Token একবারই দেখানো হয়' ) ),
+			h( 'li', {}, h( 'strong', {}, 'নিচে পেস্ট করে সংযোগ করুন' ), h( 'span', {}, 'www থাকলে বা না থাকলেও নিজে থেকে ঠিক ঠিকানা খুঁজে নেবে' ) ) ),
 		h( 'div', { class: 'iaa-field' }, h( 'label', { class: 'iaa-label', for: 'iaa-token' }, 'Token' ), tokenInput, err ),
 		h( 'details', {}, h( 'summary', { class: 'iaa-muted' }, 'উন্নত (Advanced)' ), h( 'div', { class: 'iaa-stack' }, h( 'label', { class: 'iaa-label', for: 'iaa-site' }, 'সাইট' ), siteInput, h( 'label', { class: 'iaa-label', for: 'iaa-base' }, 'API base (শুধু টেস্টের জন্য)' ), baseInput ) ),
 		btn( 'সংযোগ করুন', connect, 'primary', 'plug' ),
@@ -621,7 +625,12 @@ function viewReady() {
 		out.push( h( 'div', { class: 'iaa-empty' }, icon( 'info', 32 ), h( 'p', {}, 'Meta Business Suite Inbox খুলুন।' ), btn( 'Inbox খুলুন', () => chrome.tabs.update( S.tab.id, { url: 'https://business.facebook.com/latest/inbox/all' } ), 'secondary' ), h( 'p', { class: 'iaa-help' }, 'অথবা নিচে পেস্ট করে সাজেশন নিন।' ) ) );
 	} else {
 		out.push( dealerChip() );
-		out.push( h( 'p', { class: 'iaa-help' }, S.live ? 'কথোপকথন খুলে "কথোপকথন থেকে" চাপুন, অথবা মেসেজ select করে "নির্বাচিত লেখা" চাপুন।' : 'কাস্টমারের মেসেজটি মাউস দিয়ে select করুন, তারপর "নির্বাচিত লেখা থেকে সাজেশন" চাপুন (Alt+Shift+D)।' ) );
+		out.push( h( 'ol', { class: 'iaa-steps' },
+			S.live
+				? h( 'li', {}, h( 'strong', {}, 'কথোপকথন খুলুন' ), h( 'span', {}, '"কথোপকথন থেকে সাজেশন" চাপুন, অথবা মেসেজ select করে "নির্বাচিত লেখা থেকে"' ) )
+				: h( 'li', {}, h( 'strong', {}, 'কাস্টমারের মেসেজ select করুন' ), h( 'span', {}, 'মাউস দিয়ে মেসেজের লেখাটি টেনে নির্বাচন করুন' ) ),
+			h( 'li', {}, h( 'strong', {}, S.live ? 'একটি সাজেশন বেছে নিন' : '"নির্বাচিত লেখা থেকে সাজেশন" চাপুন' ), h( 'span', {}, S.live ? 'দরকার হলে এডিট করুন' : 'বা Alt+Shift+D — ৩টি যাচাইকৃত সাজেশন আসবে' ) ),
+			h( 'li', {}, h( 'strong', {}, S.live ? 'বসান, দেখে নিজে Send করুন' : 'বেছে নিন → কপি → Meta-তে পেস্ট করে নিজে Send' ), h( 'span', {}, 'এক্সটেনশন কখনো নিজে মেসেজ পাঠায় না' ) ) ) );
 		if ( S.live ) {
 			out.push( btn( 'কথোপকথন থেকে সাজেশন', fromConversation, 'primary', 'sparkles' ) );
 			out.push( btn( 'নির্বাচিত লেখা থেকে', fromSelection, 'secondary', 'text-select' ) );
@@ -744,7 +753,7 @@ function viewSuggestions() {
 		out.push( h( 'p', { class: 'iaa-help' }, 'একটি সাজেশন বেছে নিন (ক্লিক অথবা তীর-কী + Space)।' ) );
 		drawBar();
 	}
-	out.push( h( 'p', { class: 'iaa-muted' }, 'Request ID: ', h( 'span', { class: 'iaa-mono' }, d.requestId || '' ) ) );
+	out.push( h( 'p', { class: 'iaa-muted iaa-meta' }, aiNote( d.ai ) ? h( 'span', {}, aiNote( d.ai ) ) : null, h( 'span', {}, 'Request ID: ', h( 'span', { class: 'iaa-mono' }, d.requestId || '' ) ) ) );
 	return out;
 }
 

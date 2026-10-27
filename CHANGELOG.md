@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.0] — 2026-10-27
+
+Owner requests after installing 0.1.0 on nabiad.com.
+
+- **WooCommerce link**: per-tier price rules (WooCommerce current/regular price ± %, rounding, or CSV), automatic public *Website price* tier, sync snapshots with rollback (Sync now, on product price/name changes, daily, draft-time fallback), product fields "Inbox AI: other names / unit / pack size / exclude", Linked products view with every tier's price and live stock. Schema 3 (in-place upgrade).
+- **More AI providers**: Google Gemini and OpenAI-compatible APIs (Groq, OpenRouter …) besides Anthropic and OpenAI; primary + automatic fallback (free first, paid when the free limit is reached); per-provider keys, models, prices and tests; free-tier flag only with explicit data-use consent; panel shows which AI answered.
+- **Professional admin UI**: brand header and section navigation on every page, setup checklist, cards, empty states, tabbed Settings with provider cards, Products & prices page; **Dashboard | Settings** links on the Plugins screen.
+- **Panel**: numbered steps on connect/ready screens; connect finds `www.` automatically; requests never follow redirects (token protection).
+- **Fixes**: fact guard no longer treats sizes in product names ("100ml") or measurements as prices (would have replaced correct perfume prices with holding replies); error responses use an allowlist (no provider/model internals).
+
 ## [0.1.0] — 2026-10-27
 
 First working build of the WordPress plugin and Chrome extension (pre-pilot).

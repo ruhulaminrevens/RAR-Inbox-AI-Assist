@@ -489,3 +489,26 @@ Built on the owner's explicit instruction (AUTH, see [06_Plan](06_Plan.md#gates)
 | Icons | Lucide 1.62.0 inner SVG markup (wrapper removed), incl. `wand-sparkles` for Rewrite | |
 | Test tooling | puppeteer-core 25.16.0 + @sparticuz/chromium 153.0.0 + axe-core 4.10.3 instead of Playwright (its browser CDN is unreachable from the build environment); E2E replaces `chrome.*` with `tests/e2e/chrome-mock.js` because a headless shell cannot load extensions. PHP tests run with `php tests/php/run-all.php` (no WP-CLI needed) | |
 | Verified environments | WordPress 7.1.3, PHP 8.3.6, SQLite and MariaDB 10.11.14, WooCommerce 11.1.2 (HPOS on/off). PHP 7.4/8.1/8.4 and Chrome ≥ 116 with the unpacked extension: static checks only until CI / manual install | |
+
+## 21. v0.2.0 architecture additions (27 Oct 2026)
+
+Implements PRD §17 (FR-24…FR-28).
+
+**Providers.** `ProviderFactory::chain()` returns the usable providers in order (primary, optional `fallback_provider`); a provider without a key/model, or without token prices and not a consented free tier, is skipped. `DraftService::call_provider()` walks the chain; each attempt reserves its own worst-case cost (own reservation id, its own prices) and settles it, so only paid calls are charged. Fallback is not attempted for `BUDGET_EXCEEDED`, `DAILY_LIMIT` or `BUSY`, nor when fewer than 10 s of the request budget remain.
+
+| Provider | Endpoint / auth | Notes |
+|---|---|---|
+| Google Gemini | `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`, header `x-goog-api-key` (never in the URL) | `systemInstruction` + one user turn, `responseMimeType: application/json`, `maxOutputTokens` = 2 × setting (thinking models). Thought parts are dropped; `thoughtsTokenCount` is billed as output. 429 → `quota`. Default model `gemini-3.1-flash-lite` (stable per Google's model page, Oct 2026). |
+| OpenAI-compatible | `POST {base}/chat/completions`, Bearer key; base must be https (presets: Groq, OpenRouter) | `max_tokens`, no `response_format` (not every compatible model supports it); the parser tolerates code fences. Model ids may contain `/` and `:`. |
+
+Keys: `RAR_IAA_GEMINI_API_KEY`, `RAR_IAA_COMPAT_API_KEY` constants or the encrypted option (same as the other providers). The draft response adds `ai: { provider, label, free, fallback }` — never model internals, tokens or cost. Error responses now use an **allowlist** of data keys (`status, retry_after, fields, draft_id, request_id, min_version`). `PROMPT_VERSION` = `p3` (public price label rule).
+
+**WooCommerce link.** `Domain\WcCatalogue` collects published, visible, non-excluded products (variations individually; max 5,000) with SKU → item code (else `WC-{id}`), aliases from the product field + brand + SKU, unit/pack from product fields or the default unit. `parsed_for_tier()` applies the tier rule; `mrp_bdt` stores the website price (public). `sync()` runs under lock `wc_sync`, ensures the public tier, saves a `source = woocommerce` list only when its SHA-256 differs from the active one, activates it (activated_by 0 = system for automatic runs), and prunes archived synced snapshots to the newest 10 (never the current rollback target). State: options `rar_iaa_wc_sync_pending` (timestamp) and `rar_iaa_wc_sync_state` (last summary). Hooks: `woocommerce_before_product_object_save` (only when `get_changes()` touches price/name/SKU/status/sale dates/visibility/categories/parent), new/trash/delete/untrash, the WP-Cron single event `rar_iaa_wc_sync`, daily maintenance, `FactSelector::select()` stale fallback. Product fields are saved inside WooCommerce's own product save (`woocommerce_admin_process_product_object`) with an `edit_product` check.
+
+**Guard (BR-12).** `FactGuard` masks approved product names (from `products`/`public_prices` facts) before scanning and treats a number followed by a measurement unit (ml, g, kg, pcs, টি, পিস, মিলি, গ্রাম, কেজি …) as a quantity. Mirrored in `extension/lib/text.js`.
+
+**Admin.** New admin-post actions (capability `rar_iaa_activate_prices` + nonce): `rar_iaa_tier_rule_save`, `rar_iaa_wc_sync`, `rar_iaa_wc_settings_save`. `rar_iaa_provider_test` takes a `provider` parameter; results per provider in option `rar_iaa_provider_tests`. Pages split into `Admin\Ui` (shared header/nav/cards/forms), `Pages`, `ProductsPage`, `SettingsPage`. Plugin row links via `plugin_action_links_{basename}`.
+
+**Packaging.** ZIP entries carry the build time (not a fixed date): OPcache with `validate_timestamps` keeps serving old code after an upgrade that preserves ZIP timestamps if they never change (found in testing).
+
+**Extension.** Requests use `redirect: 'manual'` so the token is never forwarded through a redirect; a redirect is reported as `REDIRECT`. On connect, if the typed site redirects, the www / non-www twin is tried and saved when it answers. Panel shows "AI: … (ফ্রি) · ব্যাকআপ AI ব্যবহৃত" under suggestions.

@@ -118,3 +118,10 @@ body { margin: 0; background: var(--iaa-bg); color: var(--iaa-text); font-family
 	.iaa-btn__long { display: none; }
 }
 .iaa-grow { flex: 1; }
+
+/* Numbered how-to steps (connect / ready views) */
+.iaa-steps { list-style: none; counter-reset: iaa-step; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--iaa-space-2); }
+.iaa-steps li { counter-increment: iaa-step; position: relative; padding: var(--iaa-space-2) var(--iaa-space-3) var(--iaa-space-2) calc(var(--iaa-space-8) + var(--iaa-space-1)); background: var(--iaa-surface); border: 1px solid var(--iaa-border); border-radius: var(--iaa-radius-md); display: flex; flex-direction: column; gap: 2px; font-size: var(--iaa-fs-sm); }
+.iaa-steps li::before { content: counter(iaa-step); position: absolute; left: var(--iaa-space-3); top: var(--iaa-space-2); width: var(--iaa-space-5); height: var(--iaa-space-5); border-radius: var(--iaa-radius-pill); background: var(--iaa-primary); color: var(--iaa-on-primary); font-size: var(--iaa-fs-xs); font-weight: var(--iaa-fw-semibold); display: flex; align-items: center; justify-content: center; }
+.iaa-steps li span { color: var(--iaa-text-muted); font-size: var(--iaa-fs-xs); }
+.iaa-meta { display: flex; flex-wrap: wrap; gap: var(--iaa-space-1) var(--iaa-space-3); }

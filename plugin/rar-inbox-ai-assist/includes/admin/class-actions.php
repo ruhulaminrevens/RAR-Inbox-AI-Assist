@@ -14,6 +14,7 @@ use RarIaa\Domain\DealerRepository;
 use RarIaa\Domain\DraftLogRepository;
 use RarIaa\Domain\KbRepository;
 use RarIaa\Domain\PriceRepository;
+use RarIaa\Domain\WcCatalogue;
 use RarIaa\Providers\ProviderFactory;
 use RarIaa\Settings;
 use RarIaa\Db;
@@ -33,6 +34,9 @@ class Actions {
 		'rar_iaa_price_archive'    => Capabilities::MANAGE_PRICES,
 		'rar_iaa_price_activate'   => Capabilities::ACTIVATE_PRICES,
 		'rar_iaa_price_reactivate' => Capabilities::ACTIVATE_PRICES,
+		'rar_iaa_tier_rule_save'   => Capabilities::ACTIVATE_PRICES,
+		'rar_iaa_wc_sync'          => Capabilities::ACTIVATE_PRICES,
+		'rar_iaa_wc_settings_save' => Capabilities::ACTIVATE_PRICES,
 		'rar_iaa_token_revoke'     => Capabilities::USE,
 		'rar_iaa_settings_save'    => Capabilities::MANAGE_SETTINGS,
 		'rar_iaa_provider_test'    => Capabilities::MANAGE_SETTINGS,
@@ -165,6 +169,55 @@ class Actions {
 		self::result( PriceRepository::archive_draft( (int) self::post( 'id' ), $uid ), 'rar-iaa-prices', 'Draft archived.' );
 	}
 
+	/* ------------------------------------------------------------------ WooCommerce link */
+
+	private static function tier_rule_save( $uid ) {
+		$in  = array();
+		foreach ( array( 'price_source', 'wc_price_basis', 'wc_adjust_pct', 'wc_rounding' ) as $k ) {
+			$in[ $k ] = (string) self::post( $k );
+		}
+		$res = DealerRepository::save_tier_rule( (int) self::post( 'id' ), $in, $uid );
+		if ( is_wp_error( $res ) ) {
+			self::result( $res, 'rar-iaa-prices', '', array( 'tab' => 'link' ) );
+		}
+		self::sync_and_report( $uid, 'Price rule saved.' );
+	}
+
+	private static function wc_sync( $uid ) {
+		self::sync_and_report( $uid, '' );
+	}
+
+	private static function wc_settings_save( $uid ) {
+		$before = Settings::all();
+		$errors = Settings::update(
+			array(
+				'wc_categories'   => (array) self::post( 'wc_categories', array() ),
+				'wc_default_unit' => (string) self::post( 'wc_default_unit' ),
+				'wc_auto_sync'    => self::post( 'wc_auto_sync' ) ? 1 : 0,
+			)
+		);
+		if ( $errors ) {
+			Notice::set( 'error', 'Not saved. Please fix the errors.', $errors );
+			self::back( 'rar-iaa-prices', array( 'tab' => 'link' ) );
+		}
+		Audit::record( 'settings.wc', 'settings', null, array_intersect_key( $before, array_flip( array( 'wc_categories', 'wc_default_unit', 'wc_auto_sync' ) ) ), array_intersect_key( Settings::all(), array_flip( array( 'wc_categories', 'wc_default_unit', 'wc_auto_sync' ) ) ), $uid );
+		self::sync_and_report( $uid, 'Saved.' );
+	}
+
+	private static function sync_and_report( $uid, $prefix ) {
+		$res = WcCatalogue::sync( $uid, 'manual' );
+		if ( is_wp_error( $res ) ) {
+			Notice::set( 'error', trim( $prefix . ' Sync: ' . $res->get_error_message() ) );
+		} else {
+			$parts = array();
+			foreach ( $res['tiers'] as $code => $t ) {
+				$parts[] = $code . ': ' . $t['status'] . ' (' . (int) $t['items'] . ')';
+			}
+			Notice::set( 'success', trim( $prefix . ' Synced ' . (int) $res['products'] . ' products — ' . ( $parts ? implode( ', ', $parts ) : 'no WooCommerce tiers yet' ) . '.' ) );
+		}
+		self::back( 'rar-iaa-prices', array( 'tab' => 'link' ) );
+	}
+
 	/* ------------------------------------------------------------------ Tokens */
 
 	private static function token_revoke( $uid ) {
@@ -178,23 +231,26 @@ class Actions {
 	private static function settings_save( $uid ) {
 		$before = Settings::all();
 		$in     = array();
-		$keys   = array( 'provider', 'anthropic_model', 'openai_model', 'price_in_usd_per_mtok', 'price_out_usd_per_mtok', 'max_output_tokens', 'suggestion_count', 'per_minute', 'daily_limit', 'monthly_cap_usd', 'max_concurrent', 'retention_days', 'banglish_reply_script', 'reply_digits', 'business_name', 'holding_reply_bn', 'holding_reply_en', 'banned_phrases' );
+		$keys   = array( 'provider', 'fallback_provider', 'anthropic_model', 'openai_model', 'gemini_model', 'compat_base_url', 'compat_model', 'max_output_tokens', 'suggestion_count', 'per_minute', 'daily_limit', 'monthly_cap_usd', 'max_concurrent', 'retention_days', 'banglish_reply_script', 'reply_digits', 'business_name', 'holding_reply_bn', 'holding_reply_en', 'banned_phrases' );
 		foreach ( $keys as $k ) {
 			if ( isset( $_POST[ $k ] ) ) { // phpcs:ignore
 				$in[ $k ] = self::post( $k );
 			}
 		}
-		foreach ( array( 'ai_enabled', 'allow_public_mrp', 'exact_stock', 'masked_logging', 'live_inbox', 'delete_data_on_uninstall' ) as $k ) {
+		foreach ( array( 'ai_enabled', 'allow_public_mrp', 'exact_stock', 'masked_logging', 'live_inbox', 'delete_data_on_uninstall', 'free_tier_consent' ) as $k ) {
 			$in[ $k ] = self::post( $k ) ? 1 : 0;
 		}
+		$in['prices']         = (array) self::post( 'prices', array() );
+		$in['free_providers'] = array_map( 'sanitize_key', (array) self::post( 'free_providers', array() ) );
 		$in['extra_use_roles']  = (array) self::post( 'extra_use_roles', array() );
 		$in['extra_link_roles'] = (array) self::post( 'extra_link_roles', array() );
 		$errors                 = Settings::update( $in );
+		$tab = sanitize_key( (string) self::post( 'tab', 'ai' ) );
 		if ( $errors ) {
 			Notice::set( 'error', 'Settings were not saved. Please fix the errors.', $errors, $in );
-			self::back( 'rar-iaa-settings' );
+			self::back( 'rar-iaa-settings', array( 'tab' => $tab ) );
 		}
-		foreach ( array( 'anthropic', 'openai' ) as $p ) {
+		foreach ( array_keys( Settings::PROVIDERS ) as $p ) {
 			$key = trim( (string) self::post( 'key_' . $p ) );
 			if ( '' !== $key && 'constant' !== Settings::key_source( $p ) ) {
 				Settings::store_api_key( $p, $key );
@@ -208,11 +264,15 @@ class Actions {
 		Capabilities::sync();
 		Audit::record( 'settings.save', 'settings', null, $before, Settings::all(), $uid );
 		Notice::set( 'success', 'Settings saved.' );
-		self::back( 'rar-iaa-settings' );
+		self::back( 'rar-iaa-settings', array( 'tab' => $tab ) );
 	}
 
 	private static function provider_test( $uid ) {
-		$p = ProviderFactory::make();
+		$id = sanitize_key( (string) self::post( 'provider', Settings::get( 'provider' ) ) );
+		if ( ! isset( Settings::PROVIDERS[ $id ] ) ) {
+			$id = (string) Settings::get( 'provider' );
+		}
+		$p = ProviderFactory::make( $id );
 		if ( is_wp_error( $p ) ) {
 			$msg = $p->get_error_message();
 		} else {
@@ -222,10 +282,15 @@ class Actions {
 			);
 			$msg = is_wp_error( $r ) ? 'Failed: ' . $r->get_error_message() : 'OK — ' . $r['model'] . ', ' . $r['latency_ms'] . ' ms';
 		}
-		Settings::update( array( 'last_test_result' => $msg, 'last_test_at' => Db::now() ) );
-		Audit::record( 'settings.provider_test', 'settings', null, null, array( 'result' => $msg ), $uid );
-		Notice::set( 0 === strpos( $msg, 'OK' ) ? 'success' : 'error', 'Test connection: ' . $msg );
-		self::back( (string) self::post( 'return', 'rar-iaa-settings' ) === 'rar-iaa' ? 'rar-iaa' : 'rar-iaa-settings' );
+		$tests        = (array) get_option( 'rar_iaa_provider_tests', array() );
+		$tests[ $id ] = array( 'result' => substr( sanitize_text_field( $msg ), 0, 200 ), 'at' => Db::now() );
+		update_option( 'rar_iaa_provider_tests', $tests, false );
+		if ( (string) Settings::get( 'provider' ) === $id ) {
+			Settings::update( array( 'last_test_result' => $msg, 'last_test_at' => Db::now() ) );
+		}
+		Audit::record( 'settings.provider_test', 'settings', null, null, array( 'provider' => $id, 'result' => $msg ), $uid );
+		Notice::set( 0 === strpos( $msg, 'OK' ) ? 'success' : 'error', Settings::PROVIDERS[ $id ] . ' — test connection: ' . $msg );
+		self::back( (string) self::post( 'return', 'rar-iaa-settings' ) === 'rar-iaa' ? 'rar-iaa' : 'rar-iaa-settings', array( 'tab' => 'ai' ) );
 	}
 
 	private static function kill_switch( $uid ) {

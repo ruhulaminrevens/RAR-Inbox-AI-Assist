@@ -270,14 +270,7 @@ class DraftService {
 		if ( $wait ) {
 			return new \WP_Error( 'RATE_LIMITED', 'Too many requests. Wait a moment.', array( 'status' => 429, 'retry_after' => $wait ) );
 		}
-		$provider = ProviderFactory::make();
-		if ( is_wp_error( $provider ) ) {
-			return $provider;
-		}
-		if ( ! ProviderFactory::prices_configured( $provider ) ) {
-			return new \WP_Error( 'PROVIDER_NOT_CONFIGURED', 'Token prices are not set in settings, so the budget cannot be enforced.', array( 'status' => 503 ) );
-		}
-		return $provider;
+		return ProviderFactory::chain();
 	}
 
 	private function run_create( $user_id, array $in, $thread_raw ) {
@@ -357,7 +350,7 @@ class DraftService {
 		if ( $in['trimmed'] ) {
 			$warnings[] = array( 'code' => 'INPUT_TRIMMED', 'value' => (string) $in['trimmed'] );
 		}
-		return $this->response( $draft_uuid, null, $suggestions, $link, $facts['audience'], (bool) $key, $in['trimmed'], $warnings, $user_id );
+		return $this->response( $draft_uuid, null, $suggestions, $link, $facts['audience'], (bool) $key, $in['trimmed'], $warnings, $user_id, $call );
 	}
 
 	private function run_rewrite( $user_id, $parent, $mode, $text, $variant ) {
@@ -396,41 +389,100 @@ class DraftService {
 		if ( $changed ) {
 			$warnings[] = array( 'code' => 'FACTS_CHANGED' );
 		}
-		$resp                    = $this->response( $draft_uuid, $parent->draft_uuid, $suggestions, $link, $facts['audience'], (bool) $parent->thread_hash, 0, $warnings, $user_id );
+		$resp                    = $this->response( $draft_uuid, $parent->draft_uuid, $suggestions, $link, $facts['audience'], (bool) $parent->thread_hash, 0, $warnings, $user_id, $call );
 		return $resp;
 	}
 
 	/**
-	 * Reserve budget, take a slot, call the provider (one retry for transient errors, one repair
-	 * for invalid JSON), settle the budget. Returns array( items, input_tokens, output_tokens, model, provider_ms, cost ).
+	 * Walk the provider chain (primary, then fallback) until one returns valid suggestions.
+	 * Fallback is tried for provider failures (quota/rate limit, outage, timeout, unusable output)
+	 * when enough of the time budget is left; never for our own budget/daily limits.
+	 * Returns array( items, input_tokens, output_tokens, model, provider, fallback_used, provider_ms, cost ).
 	 */
-	private function call_provider( $provider, array $prompt, array $expected, array $supplied ) {
-		$max_out = (int) Settings::get( 'max_output_tokens' );
-		$est_in  = Util::strlen( $prompt['system'] . $prompt['user'] ) + 200;
-		$p_in    = (float) Settings::get( 'price_in_usd_per_mtok' );
-		$p_out   = (float) Settings::get( 'price_out_usd_per_mtok' );
-		// Worst case: the call plus one repair call.
-		$reserve = 2 * ( Budget::micros( $est_in, $p_in ) + Budget::micros( $max_out, $p_out ) );
-		$res     = Budget::reserve( $this->request_id, $reserve );
+	private function call_provider( array $chain, array $prompt, array $expected, array $supplied ) {
+		$start  = microtime( true );
+		$totals = array( 'in' => 0, 'out' => 0, 'ms' => 0, 'cost' => 0 );
+		$error  = null;
+		$last   = $chain[0];
+		foreach ( $chain as $i => $provider ) {
+			if ( $i > 0 && ( microtime( true ) - $start ) > self::TIMEOUT - 10 ) {
+				break;
+			}
+			$last = $provider;
+			$rid  = 0 === $i ? $this->request_id : Util::uuid4();
+			$r    = $this->call_one( $provider, $rid, $prompt, $expected, $supplied, $start );
+			$totals['in']   += $r['input_tokens'];
+			$totals['out']  += $r['output_tokens'];
+			$totals['ms']   += $r['provider_ms'];
+			$totals['cost'] += $r['cost'];
+			if ( null === $r['error'] ) {
+				return array(
+					'items'         => $r['items'],
+					'input_tokens'  => $totals['in'],
+					'output_tokens' => $totals['out'],
+					'model'         => $r['model'],
+					'provider'      => ProviderFactory::settings_id( $provider ),
+					'fallback_used' => $i > 0,
+					'provider_ms'   => $totals['ms'],
+					'cost'          => $totals['cost'],
+				);
+			}
+			$error = $r['error'];
+			if ( in_array( $error->get_error_code(), array( 'BUDGET_EXCEEDED', 'DAILY_LIMIT', 'BUSY' ), true ) ) {
+				break;
+			}
+		}
+		$data = (array) $error->get_error_data();
+		return new \WP_Error(
+			$error->get_error_code(),
+			$error->get_error_message(),
+			array_merge(
+				$data,
+				array(
+					'tokens_in'   => $totals['in'],
+					'tokens_out'  => $totals['out'],
+					'provider_ms' => $totals['ms'],
+					'cost'        => $totals['cost'],
+					'provider'    => ProviderFactory::settings_id( $last ),
+					'model'       => $last->model(),
+				)
+			)
+		);
+	}
+
+	/**
+	 * One provider: reserve worst-case cost (the call plus one repair), take a concurrency slot,
+	 * call (one retry for transient errors, one repair for invalid JSON), settle the budget.
+	 */
+	private function call_one( $provider, $reservation_id, array $prompt, array $expected, array $supplied, $start ) {
+		$max_out            = (int) Settings::get( 'max_output_tokens' );
+		$est_in             = Util::strlen( $prompt['system'] . $prompt['user'] ) + 200;
+		list( $p_in, $p_out ) = ProviderFactory::price( $provider );
+		$out                = array( 'items' => null, 'input_tokens' => 0, 'output_tokens' => 0, 'model' => $provider->model(), 'provider_ms' => 0, 'cost' => 0, 'error' => null );
+		$reserve            = 2 * ( Budget::micros( $est_in, $p_in ) + Budget::micros( $max_out, $p_out ) );
+		$res                = Budget::reserve( $reservation_id, $reserve );
 		if ( is_wp_error( $res ) ) {
-			return $res;
+			$out['error'] = $res;
+			return $out;
 		}
 		$slot = Concurrency::acquire();
 		if ( false === $slot ) {
-			Budget::settle( $this->request_id, 0, 0, 0, true );
-			return new \WP_Error( 'BUSY', 'Server busy. Try again in a few seconds.', array( 'status' => 503, 'retry_after' => 3 ) );
+			Budget::settle( $reservation_id, 0, 0, 0, true );
+			$out['error'] = new \WP_Error( 'BUSY', 'Server busy. Try again in a few seconds.', array( 'status' => 503, 'retry_after' => 3 ) );
+			return $out;
 		}
 		$in_tok  = 0;
 		$out_tok = 0;
 		$ms      = 0;
-		$model   = $provider->model();
-		$items   = null;
 		$error   = null;
-		$start   = microtime( true );
+		$items   = null;
+		$model   = $provider->model();
+		$actual  = 0;
 		try {
 			$attempts = 0;
 			$current  = $prompt;
 			$repaired = false;
+			$first    = microtime( true );
 			while ( true ) {
 				$attempts++;
 				$remaining = self::TIMEOUT - (int) ( microtime( true ) - $start );
@@ -438,7 +490,7 @@ class DraftService {
 				if ( is_wp_error( $r ) ) {
 					$data = $r->get_error_data();
 					$ms  += isset( $data['latency_ms'] ) ? (int) $data['latency_ms'] : 0;
-					if ( ! empty( $data['retryable'] ) && $attempts < 2 && ( microtime( true ) - $start ) < 8 ) {
+					if ( ! empty( $data['retryable'] ) && $attempts < 2 && ( microtime( true ) - $first ) < 8 ) {
 						continue;
 					}
 					$error = $r;
@@ -465,13 +517,9 @@ class DraftService {
 		} finally {
 			Concurrency::release( $slot );
 			$actual = Budget::micros( $in_tok, $p_in ) + Budget::micros( $out_tok, $p_out );
-			Budget::settle( $this->request_id, $in_tok, $out_tok, $actual, null !== $error );
+			Budget::settle( $reservation_id, $in_tok, $out_tok, $actual, null !== $error );
 		}
-		if ( $error ) {
-			$data = (array) $error->get_error_data();
-			return new \WP_Error( $error->get_error_code(), $error->get_error_message(), array_merge( $data, array( 'tokens_in' => $in_tok, 'tokens_out' => $out_tok, 'provider_ms' => $ms, 'cost' => $actual ) ) );
-		}
-		return array( 'items' => $items, 'input_tokens' => $in_tok, 'output_tokens' => $out_tok, 'model' => $model, 'provider_ms' => $ms, 'cost' => $actual );
+		return array( 'items' => $items, 'input_tokens' => $in_tok, 'output_tokens' => $out_tok, 'model' => $model, 'provider_ms' => $ms, 'cost' => $actual, 'error' => $error );
 	}
 
 	/** Unmask, guard, handoff and label one suggestion. */
@@ -513,7 +561,7 @@ class DraftService {
 		return $out;
 	}
 
-	private function response( $draft_uuid, $parent_uuid, array $suggestions, $link, $audience, $bound, $trimmed, array $warnings, $user_id ) {
+	private function response( $draft_uuid, $parent_uuid, array $suggestions, $link, $audience, $bound, $trimmed, array $warnings, $user_id, array $call = array() ) {
 		$today = Budget::today();
 		$out   = array(
 			'draft_id'           => $draft_uuid,
@@ -527,6 +575,16 @@ class DraftService {
 			'warnings'           => $warnings,
 			'usage'              => array( 'today' => (int) $today->requests, 'daily_limit' => (int) Settings::get( 'daily_limit' ) ),
 		);
+		if ( isset( $call['provider'] ) ) {
+			// Which AI answered (no model internals, no cost): shown as a small note in the panel.
+			$pid       = (string) $call['provider'];
+			$out['ai'] = array(
+				'provider' => $pid,
+				'label'    => isset( Settings::PROVIDERS[ $pid ] ) ? Settings::PROVIDERS[ $pid ] : $pid,
+				'free'     => Settings::is_free( $pid ),
+				'fallback' => ! empty( $call['fallback_used'] ),
+			);
+		}
 		if ( $parent_uuid ) {
 			$out['parent_draft_id'] = $parent_uuid;
 		}
@@ -566,7 +624,7 @@ class DraftService {
 				'source'                => $source,
 				'rewrite_mode'          => $mode,
 				'language'              => $lang,
-				'provider'              => $provider->id(),
+				'provider'              => substr( (string) $call['provider'], 0, 20 ),
 				'model'                 => substr( (string) $call['model'], 0, 60 ),
 				'prompt_version'        => PromptBuilder::PROMPT_VERSION,
 				'status'                => 'ok',
@@ -606,8 +664,8 @@ class DraftService {
 				'price_list_id'       => $meta['price_list_id'],
 				'source'              => 'rewrite' === $source ? 'rewrite' : $mode_or_source,
 				'rewrite_mode'        => 'rewrite' === $source ? $mode_or_source : null,
-				'provider'            => $provider->id(),
-				'model'               => substr( $provider->model(), 0, 60 ),
+				'provider'            => substr( (string) ( isset( $e->get_error_data()['provider'] ) ? $e->get_error_data()['provider'] : ProviderFactory::settings_id( $provider[0] ) ), 0, 20 ),
+				'model'               => substr( (string) ( isset( $e->get_error_data()['model'] ) ? $e->get_error_data()['model'] : $provider[0]->model() ), 0, 60 ),
 				'prompt_version'      => PromptBuilder::PROMPT_VERSION,
 				'status'              => 'error',
 				'error_code'          => substr( $e->get_error_code(), 0, 40 ),
@@ -622,11 +680,9 @@ class DraftService {
 	}
 
 	/** Client-safe copy of an error: drops usage and provider internals. */
+	/** Error for the client: allowlisted data only (never tokens, cost, model, provider internals). */
 	private static function public_error( \WP_Error $e ) {
-		$d = (array) $e->get_error_data();
-		foreach ( array( 'tokens_in', 'tokens_out', 'provider_ms', 'cost', 'latency_ms', 'retryable', 'provider_status' ) as $k ) {
-			unset( $d[ $k ] );
-		}
+		$d = array_intersect_key( (array) $e->get_error_data(), array_flip( array( 'status', 'retry_after', 'fields', 'draft_id', 'request_id', 'min_version' ) ) );
 		return new \WP_Error( $e->get_error_code(), $e->get_error_message(), $d );
 	}
 }

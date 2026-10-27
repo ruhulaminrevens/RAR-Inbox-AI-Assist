@@ -15,6 +15,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 		fwrite( STDERR, "Set WP_LOAD to the path of wp-load.php\n" );
 		exit( 2 );
 	}
+	// Same provider mode as the test server (the stub is refused outside local/development sites).
+	if ( ! defined( 'RAR_IAA_PROVIDER' ) ) {
+		define( 'RAR_IAA_PROVIDER', 'stub' );
+	}
 	require $load;
 }
 

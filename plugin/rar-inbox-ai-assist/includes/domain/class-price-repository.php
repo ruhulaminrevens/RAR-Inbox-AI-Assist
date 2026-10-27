@@ -63,7 +63,47 @@ class PriceRepository {
 		if ( ! $ids ) {
 			return array();
 		}
-		return $wpdb->get_results( 'SELECT * FROM ' . Db::t( 'price_items' ) . ' WHERE id IN (' . implode( ',', $ids ) . ')' ); // phpcs:ignore
+		return $wpdb->get_results( 'SELECT i.*, l.source AS list_source FROM ' . Db::t( 'price_items' ) . ' i JOIN ' . Db::t( 'price_lists' ) . ' l ON l.id = i.price_list_id WHERE i.id IN (' . implode( ',', $ids ) . ')' ); // phpcs:ignore
+	}
+
+	/** Active items for public facts: the public tier's list when it exists, else every active list. */
+	public static function public_items() {
+		global $wpdb;
+		$pub = DealerRepository::public_tier();
+		if ( $pub ) {
+			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT i.*, l.source AS list_source FROM ' . Db::t( 'price_items' ) . ' i JOIN ' . Db::t( 'price_lists' ) . ' l ON l.id = i.price_list_id WHERE l.tier_id = %d AND l.active_flag = 1 ORDER BY i.id ASC LIMIT 5000', $pub->id ) );
+			if ( $rows ) {
+				return $rows;
+			}
+		}
+		return $wpdb->get_results( 'SELECT i.*, l.source AS list_source FROM ' . Db::t( 'price_items' ) . ' i JOIN ' . Db::t( 'price_lists' ) . ' l ON l.id = i.price_list_id WHERE l.active_flag = 1 ORDER BY i.id ASC LIMIT 5000' ); // phpcs:ignore
+	}
+
+	/** Items of the active list of every tier, keyed by WooCommerce product id (for the linked-products view). */
+	public static function active_items_by_wc_product() {
+		global $wpdb;
+		$rows = $wpdb->get_results( 'SELECT i.wc_product_id, i.price_bdt, l.tier_id FROM ' . Db::t( 'price_items' ) . ' i JOIN ' . Db::t( 'price_lists' ) . ' l ON l.id = i.price_list_id WHERE l.active_flag = 1 AND i.wc_product_id IS NOT NULL' ); // phpcs:ignore
+		$out  = array();
+		foreach ( $rows as $r ) {
+			$out[ (int) $r->wc_product_id ][ (int) $r->tier_id ] = (float) $r->price_bdt;
+		}
+		return $out;
+	}
+
+	/** Delete old archived WooCommerce sync snapshots of a tier, keeping the newest $keep. */
+	public static function prune_synced( $tier_id, $keep = 10 ) {
+		global $wpdb;
+		$t   = Db::t( 'price_lists' );
+		$ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$t} WHERE tier_id = %d AND source = 'woocommerce' AND status = 'archived' ORDER BY id DESC LIMIT 1000 OFFSET %d", $tier_id, $keep ) );
+		$cur = $wpdb->get_var( $wpdb->prepare( "SELECT previous_list_id FROM {$t} WHERE tier_id = %d AND active_flag = 1", $tier_id ) );
+		$ids = array_diff( array_map( 'intval', $ids ), array( (int) $cur ) );
+		if ( ! $ids ) {
+			return 0;
+		}
+		$in = implode( ',', $ids );
+		$wpdb->query( 'DELETE FROM ' . Db::t( 'price_items' ) . " WHERE price_list_id IN ({$in})" ); // phpcs:ignore
+		$wpdb->query( "DELETE FROM {$t} WHERE id IN ({$in})" ); // phpcs:ignore
+		return count( $ids );
 	}
 
 	/** Items of every active list that also carry an MRP (public price candidates). */
@@ -240,7 +280,7 @@ class PriceRepository {
 	}
 
 	/** Save a validated parse result as a draft list. Returns list id or WP_Error. */
-	public static function save_draft( $tier_id, $name, $effective_from, array $parsed, $user_id ) {
+	public static function save_draft( $tier_id, $name, $effective_from, array $parsed, $user_id, $source = 'csv' ) {
 		global $wpdb;
 		$tier = DealerRepository::tier( $tier_id );
 		$name = trim( sanitize_text_field( $name ) );
@@ -257,13 +297,15 @@ class PriceRepository {
 		if ( $parsed['errors'] || ! $parsed['rows'] ) {
 			return new \WP_Error( 'VALIDATION_FAILED', 'The file has errors; nothing was saved.' );
 		}
+		$source = 'woocommerce' === $source ? 'woocommerce' : 'csv';
 		return Db::transaction(
-			function () use ( $wpdb, $tier_id, $name, $effective_from, $parsed, $user_id ) {
+			function () use ( $wpdb, $tier_id, $name, $effective_from, $parsed, $user_id, $source ) {
 				$wpdb->insert(
 					Db::t( 'price_lists' ),
 					array(
 						'tier_id'        => (int) $tier_id,
 						'name'           => $name,
+						'source'         => $source,
 						'status'         => 'draft',
 						'effective_from' => $effective_from,
 						'file_sha256'    => $parsed['sha256'],
@@ -277,7 +319,7 @@ class PriceRepository {
 					$r['price_list_id'] = $list_id;
 					$wpdb->insert( Db::t( 'price_items' ), $r );
 				}
-				Audit::record( 'price_list.import', 'price_list', $list_id, null, array( 'tier_id' => (int) $tier_id, 'name' => $name, 'rows' => count( $parsed['rows'] ), 'sha256' => $parsed['sha256'] ), $user_id );
+				Audit::record( 'woocommerce' === $source ? 'price_list.wc_sync' : 'price_list.import', 'price_list', $list_id, null, array( 'tier_id' => (int) $tier_id, 'name' => $name, 'rows' => count( $parsed['rows'] ), 'sha256' => $parsed['sha256'] ), $user_id );
 				return $list_id;
 			}
 		);

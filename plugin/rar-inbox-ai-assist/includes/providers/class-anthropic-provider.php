@@ -59,7 +59,7 @@ class AnthropicProvider implements Provider {
 		$json = json_decode( (string) wp_remote_retrieve_body( $res ), true );
 		if ( $code < 200 || $code >= 300 ) {
 			$type = is_array( $json ) && isset( $json['error']['type'] ) ? (string) $json['error']['type'] : 'http_' . $code;
-			return new \WP_Error( 'PROVIDER_ERROR', 'AI provider error: ' . $type, array( 'status' => 502, 'provider_status' => $code, 'retryable' => $code >= 500 || 529 === $code, 'latency_ms' => $ms ) );
+			return new \WP_Error( 'PROVIDER_ERROR', 'AI provider error: ' . $type, array( 'status' => 502, 'provider_status' => $code, 'retryable' => $code >= 500 || 529 === $code, 'quota' => 429 === $code, 'latency_ms' => $ms ) );
 		}
 		$text = '';
 		if ( is_array( $json ) && isset( $json['content'] ) && is_array( $json['content'] ) ) {
